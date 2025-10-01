@@ -1,0 +1,17 @@
+about-time==4.2.1
+alive-progress==3.3.0
+annotated-types==0.7.0
+certifi==2025.8.3
+charset-normalizer==3.4.3
+graphemeu==0.7.2
+idna==3.10
+pydantic==2.11.9
+pydantic_core==2.33.2
+python-dateutil==2.9.0.post0
+requests==2.32.5
+six==1.17.0
+speakeasypy @ git+https://github.com/Alan-s-Speakeasy/Speakeasy-Python-Client-Library@f3282cd27fced48501b4cbc46ce91e35808374c7
+sseclient==0.0.27
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.5.0
