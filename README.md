@@ -12,3 +12,15 @@ source venv/bin/activate
 # Install project dependencies
 pip install -r requirements.txt
 ```
+## Add you credentials
+Create a file .cred.py in the root directory (LimeWaveringFlag) and add your credentials:
+```
+ USERNAME = "your_username"
+ PASSWORD = "your_password"
+```
+
+## Run the application
+```
+python agent.py
+```
+
