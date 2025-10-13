@@ -1,4 +1,4 @@
-from src import query_handler
+from query_handler import handle_query
 
 
 def handle_message(message: str) -> str:
@@ -11,5 +11,12 @@ def handle_message(message: str) -> str:
     Returns:
         str: The response after processing the message.
     """
-    response = query_handler.handle_query(message)
+
+    response = ""
+    
+    if(message.startswith("PREFIX")):
+        response = handle_query(message)
+    else:
+        response = "Please enter a valid SPARQL Query"
+        
     return response
