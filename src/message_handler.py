@@ -1,22 +1,24 @@
-from query_handler import handle_query
+from src.query_handler import GraphDB
 
 
-def handle_message(message: str) -> str:
-    """
-    Orchestrate message processing and response generation.
+class MessageHandler:
 
-    Args:
-        message (str): The incoming message to be processed.
+    def __init__(self):
+        self.graph = GraphDB()
 
-    Returns:
-        str: The response after processing the message.
-    """
+    def handle_message(self, message: str) -> str:
+        """
+        Orchestrate message processing and response generation.
 
-    response = ""
-    
-    if(message.startswith("PREFIX")):
-        response = handle_query(message)
-    else:
-        response = "Please enter a valid SPARQL Query"
-        
-    return response
+        Args:
+            message (str): The incoming message to be processed.
+
+        Returns:
+            str: The response after processing the message.
+        """
+        try:
+            response = self.graph.execute_query(message)
+        except Exception as e:
+            response = "Please enter a valid SPARQL Query. Your query caused the following error: " + str(e)
+
+        return response

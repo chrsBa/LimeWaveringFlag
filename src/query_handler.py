@@ -1,26 +1,30 @@
 import os
 from rdflib import Graph
+from rdflib.plugins.sparql.processor import prepareQuery
 
-g = Graph()
-if len(g) == 0:
-    base_dir = os.path.dirname(__file__)
-    graph_path = os.path.join(base_dir, "graph.nt")
-    g.parse(graph_path, format="nt")
 
-def handle_query(query: str) -> str:
-    """
-    Process the sparql queries
+class GraphDB:
+    def __init__(self):
+        self.graph = Graph()
+        base_dir = os.path.dirname(__file__)
+        graph_path = os.path.join(base_dir, "graph.nt")
+        self.graph.parse(graph_path, format="nt")
 
-    Args:
-        query (str): The incoming sparql query to be processed.
+    def execute_query(self, query: str) -> str:
+        """
+        Process the sparql queries
 
-    Returns:
-        str: The DB response after processing the query.
-    """
+        Args:
+            query (str): The incoming sparql query to be processed.
 
-    answer = ""
+        Returns:
+            str: The DB response after processing the query.
+        """
 
-    for row in g.query(query):
-        answer += str(row[0]) + "\n"
+        prepared_query = prepareQuery(query)
+        answer = ""
 
-    return answer
+        for row in self.graph.query(prepared_query):
+            answer += str(row[0]) + "\n"
+
+        return answer

@@ -2,9 +2,8 @@ import time
 
 from speakeasypy import Chatroom, EventType, Speakeasy
 
-from message_handler import handle_message
-
 from cred import USERNAME, PASSWORD
+from src.message_handler import MessageHandler
 
 DEFAULT_HOST_URL = 'https://speakeasy.ifi.uzh.ch'
 
@@ -19,6 +18,8 @@ class Agent:
         self.speakeasy.register_callback(self.on_new_message, EventType.MESSAGE)
         self.speakeasy.register_callback(self.on_new_reaction, EventType.REACTION)
 
+        self.message_handler = MessageHandler()
+
     def listen(self):
         """Start listening for events."""
         self.speakeasy.start_listening()
@@ -26,7 +27,7 @@ class Agent:
     def on_new_message(self, message : str, room : Chatroom):
         """Callback function to handle new messages."""
         # Implement your agent logic here, e.g., respond to the message.
-        response = handle_message(message)
+        response = self.message_handler.handle_message(message)
         room.post_messages(response)
 
     def on_new_reaction(self, reaction : str, message_ordinal : int, room : Chatroom):
