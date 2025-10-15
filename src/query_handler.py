@@ -8,7 +8,9 @@ class GraphDB:
         self.graph = Graph()
         base_dir = os.path.dirname(__file__)
         graph_path = os.path.join(base_dir, "graph.nt")
+        print('Loading Graph...')
         self.graph.parse(graph_path, format="nt")
+        print('Successfully loaded Graph.')
 
     def execute_query(self, query: str) -> str:
         """
