@@ -1,5 +1,5 @@
 import os
-from rdflib import Graph
+from rdflib import Graph, RDF, OWL, RDFS
 from rdflib.plugins.sparql.processor import prepareQuery
 
 

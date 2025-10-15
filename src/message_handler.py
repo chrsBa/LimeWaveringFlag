@@ -1,10 +1,12 @@
 from graph_db import GraphDB
+from src.query_transformer import QueryTransformer
 
 
 class MessageHandler:
 
     def __init__(self):
         self.graph = GraphDB()
+        self.query_transformer = QueryTransformer()
 
     def handle_message(self, message: str) -> str:
         """
@@ -16,8 +18,11 @@ class MessageHandler:
         Returns:
             str: The response after processing the message.
         """
+        query_as_sparql = self.query_transformer.transform(message)
+        print("Generated query: ", query_as_sparql)
+
         try:
-            response = self.graph.execute_query(message)
+            response = self.graph.execute_query(query_as_sparql)
         except Exception as e:
             response = "Please enter a valid SPARQL Query. Your query caused the following error: " + str(e)
 

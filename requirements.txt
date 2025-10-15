@@ -13,6 +13,7 @@ jsonpatch==1.33
 jsonpointer==3.0.0
 langchain==1.0.0a14
 langchain-core==1.0.0a8
+langchain-ollama==0.3.10
 langgraph==1.0.0a4
 langgraph-checkpoint==2.1.2
 langgraph-prebuilt==0.7.0a2
