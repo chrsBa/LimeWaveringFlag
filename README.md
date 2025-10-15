@@ -19,6 +19,8 @@ Create a file .cred.py in the root directory (LimeWaveringFlag) and add your cre
  PASSWORD = "your_password"
 ```
 
+## Copy graph.nt file into src folder
+
 ## Run the application
 ```
 python agent.py

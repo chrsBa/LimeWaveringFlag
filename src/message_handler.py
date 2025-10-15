@@ -1,4 +1,4 @@
-from src.query_handler import GraphDB
+from query_handler import GraphDB
 
 
 class MessageHandler:
