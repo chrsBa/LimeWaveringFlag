@@ -26,6 +26,9 @@ class Agent:
         """Callback function to handle new messages."""
         # Implement your agent logic here, e.g., respond to the message.
         response = self.message_handler.handle_message(message)
+        print(f'Reeeesponse: {response}')
+        if (response is None):
+            response = 'No result could be found.'
         room.post_messages(response)
 
     def on_new_reaction(self, reaction : str, message_ordinal : int, room : Chatroom):
