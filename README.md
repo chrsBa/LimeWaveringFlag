@@ -12,6 +12,7 @@ source venv/bin/activate
 # Install project dependencies
 pip install -r requirements.txt
 ```
+- Make sure Ollama is installed: https://ollama.com/download
 ## Add you credentials
 Create a file .cred.py in the root directory (LimeWaveringFlag) and add your credentials:
 ```
@@ -19,7 +20,8 @@ Create a file .cred.py in the root directory (LimeWaveringFlag) and add your cre
  PASSWORD = "your_password"
 ```
 
-## Copy graph.nt file into src folder
+## Data
+- Copy graph.nt file into src folder
 
 ## Run the application
 ```
