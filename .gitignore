@@ -208,4 +208,7 @@ __marimo__/
 
 # Credentials files
 cred.py
+
+# Data
 graph.nt
+entity_embeds.npy

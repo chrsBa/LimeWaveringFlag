@@ -1,4 +1,10 @@
+import os
+from pyexpat.errors import messages
+
+import numpy as np
 from langchain_ollama import ChatOllama
+from numpy import load
+
 
 class QueryTransformer:
     def __init__(self):
@@ -10,21 +16,27 @@ class QueryTransformer:
              "content": "You are an assistant that converts natural language questions into SPARQL queries."
                         "Start each query with"
                         "'''"
-                        "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"
-                        "PREFIX wd: <http://www.wikidata.org/entity/>"
-                        "PREFIX wdt: <http://www.wikidata.org/prop/direct/>"
-                        "PREFIX schema: <http://schema.org/>"
+                        "PREFIX ddis: <http://ddis.ch/atai/> "
+                        "PREFIX wd: <http://www.wikidata.org/entity/> "
+                        "PREFIX wdt: <http://www.wikidata.org/prop/direct/> "
                         "'''"
+                        "Always return the label of the entity using rdfs:label."
                         "Do not add any comments or explanations!"
                         "Do not add any quotes around the query!"
-                        "Add normal new lines and indentation for better readability!"
-                        "DO NOT ADD A SERVICE STATEMENT!"
+                        "Add normal new lines and indentation!"
+                        "DO NOT ADD '''SERVICE''' !"
                         "IMPORTANT: Return only valid SPARQL!"
              },
             {"role": "user", "content": text_query}
         ]
-
         print("Generating...")
         response = self.transform_llm.invoke(messages)
-        print(response)
         return response.content.strip()
+
+
+if __name__ == "__main__":
+    transformer = QueryTransformer()
+    query = "Which movie, originally from the country 'South Korea', received the award 'Academy Award for Best Picture'?"
+    sparql_query = transformer.transform(query)
+    print(sparql_query)
+
