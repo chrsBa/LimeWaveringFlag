@@ -22,6 +22,7 @@ Create a file .cred.py in the root directory (LimeWaveringFlag) and add your cre
 
 ## Data
 - Copy graph.nt file into src folder
+- Run the entity/label mapping script in graph_db.py (main)
 
 ## Run the application
 ```

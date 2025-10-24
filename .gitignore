@@ -212,3 +212,5 @@ cred.py
 # Data
 graph.nt
 entity_embeds.npy
+relation_embeds.npy
+entities.csv

@@ -1,14 +1,15 @@
-from rdflib import URIRef
 
 from graph_db import GraphDB
 from src.query_transformer import QueryTransformer
+from src.vector_store.vector_store import VectorStore
 
 
 class MessageHandler:
 
     def __init__(self):
         self.graphDB = GraphDB()
-        self.query_transformer = QueryTransformer()
+        self.vector_store = VectorStore()
+        self.query_transformer = QueryTransformer(self.vector_store)
 
     def handle_message(self, message: str) -> str:
         """
@@ -20,9 +21,11 @@ class MessageHandler:
         Returns:
             str: The response after processing the message.
         """
-
-        query_as_sparql = self.query_transformer.transform(message)
-        print("Generated query: ", query_as_sparql)
+        try:
+            query_as_sparql = self.query_transformer.transform(message)
+            print("Generated query: ", query_as_sparql)
+        except Exception as e:
+            return "I could not find any information about the topic you asked for."
 
 
         try:

@@ -1,69 +1,125 @@
-import httpx
-from langchain.agents import create_agent
-from langchain.tools import tool
+import csv
+import os
+import re
+
+import numpy as np
+import rdflib
 from langchain_ollama import ChatOllama
 
-@tool
-def search_wikidata(search_term: str) -> str:
-    """Search Wikidata for entities and relations that match a search term."""
-    base_url = "https://www.wikidata.org/w/api.php"
-    payload = {
-        "action": "query",
-        "list": "search",
-        "srsearch": search_term,
-        "format": "json",
-        "origin": "*",
-    }
-    res = httpx.get(base_url, params=payload)
-    print(res.json())
-    return {
-                "title": res.json()['query']['search'][0]['title'],
-                "description": res.json()['query']['search'][0]['snippet']
-            } if 'search' in res.json()['query'] else "No results found"
+from src.vector_store.vector_store import VectorStore
 
 
 class QueryTransformer:
-    def __init__(self):
+    def __init__(self, vector_store: VectorStore):
         self.transform_llm = ChatOllama(model="qwen3:32b")
+        self.vector_store = vector_store
+
 
     def transform(self, text_query: str) -> str:
-        agent = create_agent(
-                                    self.transform_llm,
-                                    tools=[search_wikidata],
-                                )
-        messages=[
-            {"role": "system",
-             "content": "You are an assistant that converts natural language questions into SPARQL queries."
-                        "Start each query with"
-                        "'''"
-                        "PREFIX ddis: <http://ddis.ch/atai/> "
-                        "PREFIX wd: <http://www.wikidata.org/entity/> "
-                        "PREFIX wdt: <http://www.wikidata.org/prop/direct/> "
-                        "'''"
-                        "Add new lines and indentation!"
-                        "Use the tool 'search_wikidata' to find relevant entities and relations in Wikidata!"
-                        "DO NOT ADD entities or relations that you have not found using the tool!"
-                        "Always return the label of the entity using rdfs:label."
-             },
-            {"role": "user", "content": text_query}
+        text_query = text_query.strip().replace("?", "")
+        estimated_relation_label, estimated_entity_label = self.extract_named_entities(text_query)
+        if estimated_relation_label is None or estimated_entity_label is None:
+            raise ValueError("Could not extract named entities from the question.")
+
+        node = self.vector_store.label2entity.get(estimated_entity_label)
+        pred = self.vector_store.label2entity.get(estimated_relation_label)
+
+        print("Estimated relation label:", estimated_relation_label)
+        print("Estimated entity label:", estimated_entity_label)
+
+        if node is None:
+            print(self.vector_store.find_similar(estimated_entity_label))
+            node = self.vector_store.find_similar(estimated_entity_label)[0]['metadata']['entity']
+            print('Could not find', estimated_entity_label, 'most similar is:', node)
+
+        if pred is None:
+            pred = self.vector_store.find_similar(estimated_relation_label)[0]['metadata']['entity']
+            print(f'Could not find {estimated_relation_label}, most similar is:', pred)
+
+        query = f"""SELECT (COALESCE(?objLabel, STR(?obj)) AS ?result) WHERE {{
+                    <{node}> <{pred}> ?obj .
+                    OPTIONAL {{
+                        ?obj rdfs:label ?objLabel .
+                    }}
+                }}
+                """
+        return query
+
+
+    @staticmethod
+    def extract_named_entities(question: str) -> tuple[str, str]:
+        print(f"Extracting named entities from question: {question}")
+        factual_question_patterns = [
+            {
+                "pattern": "who is the ([^\\s]+) of (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "who was the ([^\\s]+) of (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "who was the ([^\\s]+) for (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "who was the ([^\\s]+) in (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "who ([^\\s]+) (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "who wrote the ([^\\s]+) of (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "who wrote the ([^\\s]+) for (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "what is the ([^\\s]+) of (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "when was (.*) ([^\\s]+)",
+                "entity_group_index": 1,
+                "relation_group_index": 2,
+            },
+            {
+                "pattern": "where was (.*) ([^\\s]+)",
+                "entity_group_index": 1,
+                "relation_group_index": 2,
+            },
+            {
+                "pattern": "where is ([^\\s]+) (.*)",
+                "entity_group_index": 1,
+                "relation_group_index": 2,
+            },
         ]
-        print("Generating...")
 
-        response = agent.invoke({"messages": messages})['messages'][-1].content
-        # Remove service terms
-        formated_response = str(response)
-        service_statement_index = formated_response.find("SERVICE")
-        if service_statement_index != -1:
-            print("Removed SERVICE part from response.")
-            formated_response = response[:service_statement_index] + "}"
+        for pattern in factual_question_patterns:
+            match = re.match(pattern["pattern"], question.rstrip("?"), re.IGNORECASE)
 
-        formated_response = formated_response.replace('```sparql', '').replace('```', '').strip()
+            if match:
+                relation = match.group(pattern["relation_group_index"]).strip()
+                entity = match.group(pattern["entity_group_index"]).strip()
+                return relation, entity
 
-        return formated_response
+        return None, None
 
 
 if __name__ == "__main__":
-    transformer = QueryTransformer()
-    query = "Which movie, originally from the country 'South Korea', received the award 'Academy Award for Best Picture'?"
-    sparql_query = transformer.transform(query)
-    print(sparql_query)
+    query_transformer = QueryTransformer(vector_store=VectorStore())
+    query = ('Who is the director of Star Wars: Episode VI - Return of the Jedi?')
+    result = query_transformer.transform(query)
+    print(result)
