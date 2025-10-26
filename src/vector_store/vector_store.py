@@ -13,8 +13,8 @@ from lancedb.rerankers import CrossEncoderReranker
 from langchain_core.documents import Document
 from tqdm import tqdm
 
-from src.vector_store.batch_inserter import BatchInserter
-from src.vector_store.table_schema import TableSchema
+from vector_store.batch_inserter import BatchInserter
+from vector_store.table_schema import TableSchema
 
 
 class VectorStore:
