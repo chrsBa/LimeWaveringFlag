@@ -112,6 +112,6 @@ if __name__ == "__main__":
 
     # vector_store.fill_vector_store()
 
-    similar_items = vector_store.find_similar_entity('When was "The Godfather" released?', k=1)
+    similar_items = vector_store.find_similar_relation('Who directed the movie G.I. Joe', k=5)
     for similar_item in similar_items:
         print(similar_item['metadata'])

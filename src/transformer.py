@@ -7,7 +7,7 @@ from src.vector_store.vector_store import VectorStore
 
 class Transformer:
     def __init__(self, vector_store: VectorStore):
-        self.transform_llm = ChatOllama(model="qwen3:32b")
+        self.transform_llm = ChatOllama(model="gemma3:4b", temperature=0.7)
         self.vector_store = vector_store
 
 
@@ -130,6 +130,19 @@ class Transformer:
             return None, quote_match.group(2)
 
         return None, None
+
+
+    def transform_answer(self, question:str, factual_answer: str) -> str:
+        print(f"Transforming answer: {factual_answer}")
+        prompt = f"""
+        Given the question: "{question}" and the factual answer: "{factual_answer}", generate a concise and informative answer.
+        DO NOT ADD ANY ADDITIONAL INFORMATION THAT IS NOT PRESENT IN THE FACTUAL ANSWER. 
+        ONLY TRANSFORM IT TO A NATURAL LANGUAGE ANSWER. 
+        Start with a statement that you found the answer.
+        Use an helpful, engaging and conversational tone and ensure your answer sounds natural.
+        Append '(Factual Answer)'"""
+        response = self.transform_llm.invoke([{"role": "user", "content": prompt}])
+        return response.content
 
 if __name__ == "__main__":
     query_transformer = Transformer(vector_store=VectorStore())
