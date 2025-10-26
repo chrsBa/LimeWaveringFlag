@@ -1,6 +1,6 @@
 from graph_db import GraphDB
-from src.transformer import Transformer
-from src.vector_store.vector_store import VectorStore
+from transformer import Transformer
+from vector_store.vector_store import VectorStore
 
 
 class MessageHandler:
