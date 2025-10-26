@@ -1,5 +1,3 @@
-from http.client import responses
-
 from graph_db import GraphDB
 from src.transformer import Transformer
 from src.vector_store.vector_store import VectorStore
@@ -11,7 +9,7 @@ class MessageHandler:
         self.graphDB = GraphDB()
         self.vector_store = VectorStore()
         self.transformer = Transformer(self.vector_store)
-        self.retries = 3
+        self.retries = 2
 
     def handle_message(self, message: str) -> str:
         """

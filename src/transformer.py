@@ -21,7 +21,6 @@ class Transformer:
 
         entity_search_query = self.clean_text_query(entity_search_query)
 
-        # On retry only consider entities that have the keyword 'movie' or 'film' in their description
         node_result = self.vector_store.find_similar_entity(entity_search_query, 3)
         print(entity_search_query, node_result[0]['metadata'])
         node = node_result[0]['metadata']['entity']
@@ -89,11 +88,11 @@ class Transformer:
                 "entity_group_index": 2,
                 "relation_group_index": 1,
             },
-            {
-                "pattern": "what ([^\\s]+) is (.*)",
-                "entity_group_index": 2,
-                "relation_group_index": 1,
-            },
+            # {
+            #     "pattern": "what ([^\\s]+) is (.*)",
+            #     "entity_group_index": 2,
+            #     "relation_group_index": 1,
+            # },
             {
                 "pattern": "what is the ([^\\s]+) of (.*)",
                 "entity_group_index": 2,
@@ -127,7 +126,7 @@ class Transformer:
         # Check if something in quotes is present (probably an entity)
         quote_match = re.search(r'"(.*?)"|\'(.*?)\'', question)
         if quote_match:
-            return None, quote_match.group(2)
+            return None, quote_match.group(1) or quote_match.group(2)
 
         return None, None
 
@@ -138,8 +137,7 @@ class Transformer:
         Given the question: "{question}" and the factual answer: "{factual_answer}", generate a concise and informative answer.
         DO NOT ADD ANY ADDITIONAL INFORMATION THAT IS NOT PRESENT IN THE FACTUAL ANSWER. 
         ONLY TRANSFORM IT TO A NATURAL LANGUAGE ANSWER. 
-        Start with a statement that you found the answer.
-        Use an helpful, engaging and conversational tone and ensure your answer sounds natural.
+        Use a helpful, engaging and conversational tone and ensure your answer sounds natural.
         Append '(Factual Answer)'"""
         response = self.transform_llm.invoke([{"role": "user", "content": prompt}])
         return response.content

@@ -103,7 +103,7 @@ class VectorStore:
     def _instantiate_table(self, table_name: str):
         try:
             return self.vector_db.open_table(table_name)
-        except:
+        except Exception as e:
             return self.vector_db.create_table(table_name, schema=TableSchema, mode="overwrite")
 
 
