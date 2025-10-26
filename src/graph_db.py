@@ -1,6 +1,8 @@
 import os
-from rdflib import Graph, URIRef
+import csv
+from rdflib import Graph
 from rdflib.plugins.sparql.processor import prepareQuery
+
 
 
 class GraphDB:
@@ -31,30 +33,22 @@ class GraphDB:
 
         return answer
 
-    def extract_relations(self):
-        query = """
-                    PREFIX ddis: <http://ddis.ch/atai/>
-                    PREFIX wd: <http://www.wikidata.org/entity/>
-                    PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-                    PREFIX schema: <http://schema.org/> 
+    def extract_entities(self):
+        # Extract entities and their labels from the graph
+        ent2lbl = {ent: str(lbl) for ent, lbl in self.graph.subject_objects()}
+        lbl2ent = {lbl: ent for ent, lbl in ent2lbl.items()}
 
-                    SELECT ?label WHERE {{
-                        {} rdfs:label ?label .
-                        FILTER(LANG(?label) = "en").
-                    }}
-                    LIMIT 1
-                    """
+        # Save to CSV
+        base_dir = os.path.dirname(__file__)
+        csv_path = os.path.join(base_dir, "../data/entities.csv")
+        with open(csv_path, mode="w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            for entity, label in ent2lbl.items():
+                writer.writerow([entity, label])
 
-        graph_entities = set(self.graph.subjects(unique=True)) | set(self.graph.objects(unique=True)) | set(self.graph.predicates(unique=True))
 
-        for node in graph_entities:
-            link = node.n3()
-            if isinstance(node, URIRef):
-                result = self.graph.query(query.format(link))
-                for row in result:
-                    print(link.split('/')[-1], row.label)
 
 
 if __name__ == "__main__":
     graph_db = GraphDB()
-    graph_db.extract_relations()
+    graph_db.extract_entities()
