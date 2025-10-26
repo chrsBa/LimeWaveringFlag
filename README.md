@@ -12,7 +12,18 @@ source venv/bin/activate
 # Install project dependencies
 pip install -r requirements.txt
 ```
-- Make sure Ollama is installed: https://ollama.com/download
+
+- Install ollama (https://anaconda.org/conda-forge/ollama)
+- Make sure your Ollama server is running
+- Pull the Ollama model gemma3:4b (https://medium.com/@gabrielrodewald/running-models-with-ollama-step-by-step-60b6f6125807)
+- Pull embbedding model
+```
+conda install conda-forge::ollama
+ollama serve
+ollama pull gemma3:4b
+ollama pull embeddinggemma:300m
+```
+
 ## Add you credentials
 Create a file .cred.py in the root directory (LimeWaveringFlag) and add your credentials:
 ```
@@ -26,9 +37,6 @@ Create a file .cred.py in the root directory (LimeWaveringFlag) and add your cre
 - Copy entity_embeds.npy file into the LimeWaveringFlag/data folder
 - Run the entity/label mapping script in graph_db.py (main)
 - Run the vector store filling script in vector_store.py (main)
-- Install ollama (https://anaconda.org/conda-forge/ollama)
-- Make sure your Ollama server is running
-- Pull the Ollama model gemma3:4b (https://medium.com/@gabrielrodewald/running-models-with-ollama-step-by-step-60b6f6125807)
 
 ## Run the application
 ```

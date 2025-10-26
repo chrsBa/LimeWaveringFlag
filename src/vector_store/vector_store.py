@@ -19,7 +19,8 @@ from src.vector_store.table_schema import TableSchema
 
 class VectorStore:
     def __init__(self):
-        self.vector_db_path = '../data/lancedb'
+        base_dir = os.path.dirname(__file__)
+        self.vector_db_path = os.path.join(base_dir, '..', '..', 'data', 'lancedb')
         self.entities_table_name = 'entities'
         self.vector_db = lancedb.connect(self.vector_db_path)
         self.entities_table = self._instantiate_table(self.entities_table_name)
@@ -96,7 +97,8 @@ class VectorStore:
         return xxhash.xxh64(text).hexdigest()
 
     def _load_entity_label_mapping(self):
-        with open(os.path.join('..', 'data', 'entities.csv'), 'r') as csv_file:
+        base_dir = os.path.dirname(__file__)
+        with open(os.path.join(base_dir, '..', '..', 'data', 'entities.csv'), 'r') as csv_file:
             self.entity2label = {rdflib.term.URIRef(ent): label for ent, label in csv.reader(csv_file)}
             self.label2entity = {v: k for k, v in self.entity2label.items()}
 
@@ -112,6 +114,7 @@ if __name__ == "__main__":
 
     # vector_store.fill_vector_store()
 
+    print(vector_store.entities_table.stats())
     similar_items = vector_store.find_similar_relation('Who directed the movie G.I. Joe', k=5)
     for similar_item in similar_items:
         print(similar_item['metadata'])

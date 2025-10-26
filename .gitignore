@@ -216,3 +216,4 @@ relation_embeds.npy
 entities.csv
 entity_ids.del
 relation_ids.del
+lancedb

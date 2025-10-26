@@ -88,11 +88,11 @@ class Transformer:
                 "entity_group_index": 2,
                 "relation_group_index": 1,
             },
-            # {
-            #     "pattern": "what ([^\\s]+) is (.*)",
-            #     "entity_group_index": 2,
-            #     "relation_group_index": 1,
-            # },
+            {
+                "pattern": "what ([^\\s]+) is (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
             {
                 "pattern": "what is the ([^\\s]+) of (.*)",
                 "entity_group_index": 2,
