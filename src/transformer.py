@@ -1,53 +1,57 @@
-import csv
-import os
 import re
 
-import numpy as np
-import rdflib
 from langchain_ollama import ChatOllama
 
 from src.vector_store.vector_store import VectorStore
 
 
-class QueryTransformer:
+class Transformer:
     def __init__(self, vector_store: VectorStore):
         self.transform_llm = ChatOllama(model="qwen3:32b")
         self.vector_store = vector_store
 
 
-    def transform(self, text_query: str) -> str:
-        text_query = text_query.strip().replace("?", "")
-        estimated_relation_label, estimated_entity_label = self.extract_named_entities(text_query)
-        if estimated_relation_label is None or estimated_entity_label is None:
-            raise ValueError("Could not extract named entities from the question.")
+    def transform_query(self, text_query: str, retry=0) -> str:
+        entity_search_query = text_query
+        relation_search_query = text_query
+        if retry == 0:
+            _, entity_search_query = self.extract_named_entities(text_query)
+            if entity_search_query is None:
+                entity_search_query = text_query
 
-        node = self.vector_store.label2entity.get(estimated_entity_label)
-        pred = self.vector_store.label2entity.get(estimated_relation_label)
+        entity_search_query = self.clean_text_query(entity_search_query)
 
-        print("Estimated relation label:", estimated_relation_label)
-        print("Estimated entity label:", estimated_entity_label)
+        # On retry only consider entities that have the keyword 'movie' or 'film' in their description
+        node_result = self.vector_store.find_similar_entity(entity_search_query, 3)
+        print(entity_search_query, node_result[0]['metadata'])
+        node = node_result[0]['metadata']['entity']
+        pred_result = self.vector_store.find_similar_relation(relation_search_query, 3)
+        print(relation_search_query, pred_result[0]['metadata'])
+        pred = pred_result[0]['metadata']['entity']
 
-        if node is None:
-            print(self.vector_store.find_similar(estimated_entity_label))
-            node = self.vector_store.find_similar(estimated_entity_label)[0]['metadata']['entity']
-            print('Could not find', estimated_entity_label, 'most similar is:', node)
-
-        if pred is None:
-            pred = self.vector_store.find_similar(estimated_relation_label)[0]['metadata']['entity']
-            print(f'Could not find {estimated_relation_label}, most similar is:', pred)
-
-        query = f"""SELECT (COALESCE(?objLabel, STR(?obj)) AS ?result) WHERE {{
+        return f"""SELECT (COALESCE(?objLabel, STR(?obj)) AS ?result) WHERE {{
                     <{node}> <{pred}> ?obj .
                     OPTIONAL {{
                         ?obj rdfs:label ?objLabel .
                     }}
                 }}
+                LIMIT 1
                 """
-        return query
+
+    @staticmethod
+    def clean_text_query(text_query: str) -> str:
+        # Remove ?, quotes and 'movie' keywords to optimize similarity search
+        return (text_query
+                .replace('"', '')
+                .replace("'", '')
+                .replace('the movie ', '')
+                .replace('the film ', '')
+                .replace('?', '')
+                .strip())
 
 
     @staticmethod
-    def extract_named_entities(question: str) -> tuple[str, str]:
+    def extract_named_entities(question: str) -> tuple[str, str] | tuple[None, None]:
         print(f"Extracting named entities from question: {question}")
         factual_question_patterns = [
             {
@@ -86,6 +90,11 @@ class QueryTransformer:
                 "relation_group_index": 1,
             },
             {
+                "pattern": "what ([^\\s]+) is (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
                 "pattern": "what is the ([^\\s]+) of (.*)",
                 "entity_group_index": 2,
                 "relation_group_index": 1,
@@ -115,11 +124,15 @@ class QueryTransformer:
                 entity = match.group(pattern["entity_group_index"]).strip()
                 return relation, entity
 
+        # Check if something in quotes is present (probably an entity)
+        quote_match = re.search(r'"(.*?)"|\'(.*?)\'', question)
+        if quote_match:
+            return None, quote_match.group(2)
+
         return None, None
 
-
 if __name__ == "__main__":
-    query_transformer = QueryTransformer(vector_store=VectorStore())
-    query = ('Who is the director of Star Wars: Episode VI - Return of the Jedi?')
-    result = query_transformer.transform(query)
+    query_transformer = Transformer(vector_store=VectorStore())
+    query = ('When was "The Godfather" released?')
+    result = query_transformer.transform_query(query)
     print(result)

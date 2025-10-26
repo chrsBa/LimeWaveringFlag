@@ -21,8 +21,12 @@ Create a file .cred.py in the root directory (LimeWaveringFlag) and add your cre
 ```
 
 ## Data
-- Copy graph.nt file into src folder
+- Copy graph.nt file into the LimeWaveringFlag/data folder
+- Copy relation_embeds.npy file into the LimeWaveringFlag/data folder
+- Copy entity_embeds.npy file into the LimeWaveringFlag/data folder
 - Run the entity/label mapping script in graph_db.py (main)
+- Run the vector store filling script in vector_store.py (main)
+- Make sure your Ollama server is running
 
 ## Run the application
 ```

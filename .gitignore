@@ -214,3 +214,5 @@ graph.nt
 entity_embeds.npy
 relation_embeds.npy
 entities.csv
+entity_ids.del
+relation_ids.del

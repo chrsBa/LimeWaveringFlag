@@ -18,6 +18,8 @@ else:
 class EntityMetadata(LanceModel):
     entity: str
     label: str
+    description: str
+    type: str
 
 class TableSchema(LanceModel):
     vector: Vector(func.ndims()) = func.VectorField()
