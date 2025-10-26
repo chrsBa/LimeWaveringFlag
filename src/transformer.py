@@ -2,7 +2,7 @@ import re
 
 from langchain_ollama import ChatOllama
 
-from src.vector_store.vector_store import VectorStore
+from vector_store.vector_store import VectorStore
 
 
 class Transformer:
