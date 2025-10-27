@@ -26,10 +26,11 @@ class Agent:
         """Callback function to handle new messages."""
         # Implement your agent logic here, e.g., respond to the message.
         room.post_messages("Let's have a look...")
-        response = self.message_handler.handle_message(message)
-        if response == "":
-            response = 'I could not find a factual answer to your question. Please try rephrasing it or ask something else.'
-        room.post_messages(response)
+        factual_response, embedding_response = self.message_handler.handle_message(message)
+        if factual_response == "":
+            factual_response = 'I could not find a factual answer to your question. Please try rephrasing it or ask something else.'
+        room.post_messages(factual_response)
+        room.post_messages(embedding_response)
 
     def on_new_reaction(self, reaction : str, message_ordinal : int, room : Chatroom):
         print(reaction)

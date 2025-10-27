@@ -11,7 +11,18 @@ class Transformer:
         self.vector_store = vector_store
 
 
-    def transform_query(self, text_query: str, retry=0) -> str:
+    def get_query_for_entity_relation(self, entity: str, relation: str) -> str:
+        return f"""SELECT (COALESCE(?objLabel, STR(?obj)) AS ?result) WHERE {{
+                    <{entity}> <{relation}> ?obj .
+                    OPTIONAL {{
+                        ?obj rdfs:label ?objLabel .
+                    }}
+                }}
+                LIMIT 1
+                """
+
+
+    def extract_text_entities(self, text_query: str, retry=0) ->tuple[str, str]:
         entity_search_query = text_query
         relation_search_query = text_query
         if retry == 0:
@@ -28,14 +39,7 @@ class Transformer:
         print(relation_search_query, pred_result[0]['metadata'])
         pred = pred_result[0]['metadata']['entity']
 
-        return f"""SELECT (COALESCE(?objLabel, STR(?obj)) AS ?result) WHERE {{
-                    <{node}> <{pred}> ?obj .
-                    OPTIONAL {{
-                        ?obj rdfs:label ?objLabel .
-                    }}
-                }}
-                LIMIT 1
-                """
+        return pred, node
 
     @staticmethod
     def clean_text_query(text_query: str) -> str:
@@ -131,19 +135,19 @@ class Transformer:
         return None, None
 
 
-    def transform_answer(self, question:str, factual_answer: str) -> str:
+    def transform_answer(self, question:str, factual_answer: str, source: str) -> str:
         print(f"Transforming answer: {factual_answer}")
         prompt = f"""
         Given the question: "{question}" and the factual answer: "{factual_answer}", generate a concise and informative answer.
         DO NOT ADD ANY ADDITIONAL INFORMATION THAT IS NOT PRESENT IN THE FACTUAL ANSWER. 
         ONLY TRANSFORM IT TO A NATURAL LANGUAGE ANSWER. 
         Use a helpful, engaging and conversational tone and ensure your answer sounds natural.
-        Append '(Factual Answer)'"""
+        Append '({source} Answer)'"""
         response = self.transform_llm.invoke([{"role": "user", "content": prompt}])
         return response.content
 
 if __name__ == "__main__":
     query_transformer = Transformer(vector_store=VectorStore())
     query = ('When was "The Godfather" released?')
-    result = query_transformer.transform_query(query)
+    result = query_transformer.extract_text_entities(query)
     print(result)
