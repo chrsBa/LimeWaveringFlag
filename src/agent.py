@@ -1,7 +1,7 @@
 from speakeasypy import Chatroom, EventType, Speakeasy
 
 from cred import USERNAME, PASSWORD
-from message_handler import MessageHandler
+from src.message_handler import MessageHandler
 
 DEFAULT_HOST_URL = 'https://speakeasy.ifi.uzh.ch'
 

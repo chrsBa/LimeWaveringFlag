@@ -1,8 +1,9 @@
 import re
+import string
 
 from langchain_ollama import ChatOllama
 
-from vector_store.vector_store import VectorStore
+from src.vector_store.vector_store import VectorStore
 
 
 class Transformer:
@@ -26,9 +27,11 @@ class Transformer:
         entity_search_query = text_query
         relation_search_query = text_query
         if retry == 0:
-            _, entity_search_query = self.extract_named_entities(text_query)
+            relation_search_query, entity_search_query = self.extract_named_entities(text_query)
             if entity_search_query is None:
                 entity_search_query = text_query
+            if relation_search_query is None:
+                relation_search_query = text_query
 
         entity_search_query = self.clean_text_query(entity_search_query)
 
@@ -50,6 +53,10 @@ class Transformer:
                 .replace('the movie ', '')
                 .replace('the film ', '')
                 .replace('?', '')
+                .replace("‘", '')
+                .replace("’", '')
+                .replace("“", '"')
+                .replace("”", '"')
                 .strip())
 
 
@@ -57,6 +64,12 @@ class Transformer:
     def extract_named_entities(question: str) -> tuple[str, str] | tuple[None, None]:
         print(f"Extracting named entities from question: {question}")
         factual_question_patterns = [
+            {
+                "pattern": r"when (?:was|did)?\s+['\"]?(.*?)['\"]?(?:\s+.*)?$",
+                "entity_group_index": 1,
+                "relation_group_index": None,
+                "default_relation": "release_date",
+            },
             {
                 "pattern": "who is the ([^\\s]+) of (.*)",
                 "entity_group_index": 2,
@@ -103,11 +116,6 @@ class Transformer:
                 "relation_group_index": 1,
             },
             {
-                "pattern": "when was (.*) ([^\\s]+)",
-                "entity_group_index": 1,
-                "relation_group_index": 2,
-            },
-            {
                 "pattern": "where was (.*) ([^\\s]+)",
                 "entity_group_index": 1,
                 "relation_group_index": 2,
@@ -117,14 +125,26 @@ class Transformer:
                 "entity_group_index": 1,
                 "relation_group_index": 2,
             },
+            {
+                "pattern": "from what ([^\\s]+) is (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
         ]
 
         for pattern in factual_question_patterns:
-            match = re.match(pattern["pattern"], question.rstrip("?"), re.IGNORECASE)
+            match = re.search(pattern["pattern"], question.translate(str.maketrans('', '', string.punctuation)), re.IGNORECASE)
 
             if match:
-                relation = match.group(pattern["relation_group_index"]).strip()
                 entity = match.group(pattern["entity_group_index"]).strip()
+
+                if "default_relation" in pattern:
+                    relation = pattern["default_relation"]
+                else:
+                    relation = match.group(pattern["relation_group_index"]).strip()
+
+                print("relation: " + relation)
+                print("entity: " + entity)
                 return relation, entity
 
         # Check if something in quotes is present (probably an entity)
