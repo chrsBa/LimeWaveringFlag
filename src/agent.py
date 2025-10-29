@@ -1,7 +1,7 @@
 from speakeasypy import Chatroom, EventType, Speakeasy
 
 from cred import USERNAME, PASSWORD
-from message_handler import MessageHandler
+from src.message_handler import MessageHandler
 
 DEFAULT_HOST_URL = 'https://speakeasy.ifi.uzh.ch'
 
@@ -26,10 +26,19 @@ class Agent:
         """Callback function to handle new messages."""
         # Implement your agent logic here, e.g., respond to the message.
         room.post_messages("Let's have a look...")
-        response = self.message_handler.handle_message(message)
-        if response == "":
-            response = 'I could not find a factual answer to your question. Please try rephrasing it or ask something else.'
-        room.post_messages(response)
+        text_query = message.split(":")[1]
+        both_answers_needed = message.split(":")[0].split("Please answer this question")[1] == ""
+        factual_answer_needed = both_answers_needed or message.split(":")[0].split("Please answer this question")[1] == " with a factual approach"
+        embedding_answer_needed = both_answers_needed or message.split(":")[0].split("Please answer this question")[1] == " with an embedding approach"
+        factual_response, embedding_response = self.message_handler.handle_message(text_query)
+        if factual_response == "" and factual_answer_needed:
+            factual_response = 'I could not find a factual answer to your question. Please try rephrasing it or ask something else.'
+        if embedding_response == "" and embedding_answer_needed:
+            embedding_response = 'I could not find an answer based on embeddings to your question. Please try rephrasing it or ask something else.'
+        if factual_answer_needed:
+            room.post_messages(factual_response)
+        if embedding_answer_needed:
+            room.post_messages(embedding_response)
 
     def on_new_reaction(self, reaction : str, message_ordinal : int, room : Chatroom):
         print(reaction)

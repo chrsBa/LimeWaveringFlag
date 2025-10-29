@@ -13,8 +13,8 @@ from lancedb.rerankers import CrossEncoderReranker
 from langchain_core.documents import Document
 from tqdm import tqdm
 
-from vector_store.batch_inserter import BatchInserter
-from vector_store.table_schema import TableSchema
+from .batch_inserter import BatchInserter
+from .table_schema import TableSchema
 
 
 class VectorStore:
@@ -33,12 +33,14 @@ class VectorStore:
         self._load_entity_label_mapping()
 
     def find_similar_entity(self, estimated_label: str, k=1) -> List[dict]:
+        print("entity estimate: " + estimated_label)
         print("Finding similar entity for: ", estimated_label)
         return (self.entities_table.search(query=estimated_label).where(f"metadata.type='entity'")
                 .where("LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%'")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
     def find_similar_relation(self, estimated_label: str, k=1) -> List[dict]:
+        print("relation estimate: " + estimated_label)
         return (self.entities_table.search(query=estimated_label).where(f"metadata.type='relation'")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
@@ -97,8 +99,10 @@ class VectorStore:
         return xxhash.xxh64(text).hexdigest()
 
     def _load_entity_label_mapping(self):
-        base_dir = os.path.dirname(__file__)
-        with open(os.path.join(base_dir, '..', '..', 'data', 'entities.csv'), 'r') as csv_file:
+        vect_dir = os.path.dirname(__file__)
+        src_dir = os.path.dirname(vect_dir)
+        base_dir = os.path.dirname(src_dir)
+        with open(os.path.join(base_dir, 'data', 'entities.csv'), 'r', encoding="utf-8") as csv_file:
             self.entity2label = {rdflib.term.URIRef(ent): label for ent, label in csv.reader(csv_file)}
             self.label2entity = {v: k for k, v in self.entity2label.items()}
 
@@ -112,9 +116,9 @@ class VectorStore:
 if __name__ == "__main__":
     vector_store = VectorStore()
 
-    # vector_store.fill_vector_store()
+    vector_store.fill_vector_store()
 
-    print(vector_store.entities_table.stats())
-    similar_items = vector_store.find_similar_relation('Who directed the movie G.I. Joe', k=5)
-    for similar_item in similar_items:
-        print(similar_item['metadata'])
+    # print(vector_store.entities_table.stats())
+    # similar_items = vector_store.find_similar_relation('Who directed the movie G.I. Joe', k=5)
+    # for similar_item in similar_items:
+    #     print(similar_item['metadata'])

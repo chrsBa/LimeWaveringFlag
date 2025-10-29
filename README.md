@@ -21,7 +21,7 @@ pip install -r requirements.txt
 conda install conda-forge::ollama
 ollama serve
 ollama pull gemma3:4b
-ollama pull embeddinggemma:300m
+ollama pull V4lentin1879/jina-bert-code-f16:latest
 ```
 
 ## Add you credentials
@@ -32,6 +32,7 @@ Create a file .cred.py in the root directory (LimeWaveringFlag) and add your cre
 ```
 
 ## Data
+- Create a data folder LimeWaveringFlag/data
 - Copy graph.nt file into the LimeWaveringFlag/data folder
 - Copy relation_embeds.npy file into the LimeWaveringFlag/data folder
 - Copy entity_embeds.npy file into the LimeWaveringFlag/data folder

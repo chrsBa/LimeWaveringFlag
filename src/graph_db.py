@@ -8,8 +8,9 @@ from rdflib.plugins.sparql.processor import prepareQuery
 class GraphDB:
     def __init__(self):
         self.graph = Graph()
-        base_dir = os.path.dirname(__file__)
-        graph_path = os.path.join(base_dir, "../data/graph.nt")
+        src_dir = os.path.dirname(__file__)
+        base_dir = os.path.dirname(src_dir)
+        graph_path = os.path.join(base_dir, "data", "graph.nt")
         print('Loading Graph...')
         self.graph.parse(graph_path, format="nt")
         print('Successfully loaded Graph.')
@@ -39,8 +40,9 @@ class GraphDB:
         lbl2ent = {lbl: ent for ent, lbl in ent2lbl.items()}
 
         # Save to CSV
-        base_dir = os.path.dirname(__file__)
-        csv_path = os.path.join(base_dir, "../data/entities.csv")
+        src_dir = os.path.dirname(__file__)
+        base_dir = os.path.dirname(src_dir)
+        csv_path = os.path.join(base_dir, "data", "entities.csv")
         with open(csv_path, mode="w", newline="", encoding="utf-8") as csvfile:
             writer = csv.writer(csvfile)
             for entity, label in ent2lbl.items():
