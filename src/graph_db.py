@@ -43,7 +43,6 @@ class GraphDB:
         src_dir = os.path.dirname(__file__)
         base_dir = os.path.dirname(src_dir)
         csv_path = os.path.join(base_dir, "data", "entities.csv")
-        print(csv_path)
         with open(csv_path, mode="w", newline="", encoding="utf-8") as csvfile:
             writer = csv.writer(csvfile)
             for entity, label in ent2lbl.items():

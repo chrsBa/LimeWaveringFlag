@@ -1,9 +1,7 @@
-from rdflib.compare import graph_diff
-
 from .embedding_search import EmbeddingSearch
 from .graph_db import GraphDB
 from .transformer import Transformer
-from src.vector_store.vector_store import VectorStore
+from .vector_store.vector_store import VectorStore
 
 
 class MessageHandler:

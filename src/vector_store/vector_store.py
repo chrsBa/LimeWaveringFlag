@@ -20,7 +20,7 @@ from .table_schema import TableSchema
 class VectorStore:
     def __init__(self):
         base_dir = os.path.dirname(__file__)
-        self.vector_db_path = os.path.join(base_dir, 'data', 'lancedb')
+        self.vector_db_path = os.path.join(base_dir, '..', '..', 'data', 'lancedb')
         self.entities_table_name = 'entities'
         self.vector_db = lancedb.connect(self.vector_db_path)
         self.entities_table = self._instantiate_table(self.entities_table_name)
