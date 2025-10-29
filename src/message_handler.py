@@ -27,27 +27,24 @@ class MessageHandler:
         """
         retried = 0
 
-        try:
-            graph_response = ""
-            while retried < self.retries:
-                extracted_relation, extracted_entity = self.transformer.extract_text_entities(message, retried)
-                
-                print("extracted entity" + extracted_entity)
-                print("extracted relation" + extracted_relation)
-                query_as_sparql = self.transformer.get_query_for_entity_relation(extracted_entity, extracted_relation)
-                print("Generated query: ", query_as_sparql)
-                graph_response = self.graphDB.execute_query(query_as_sparql)
-                if graph_response.strip() == "":
-                    retried += 1
-                else:
-                    break
+        graph_response = ""
+        while retried < self.retries:
+            extracted_relation, extracted_entity = self.transformer.extract_text_entities(message, retried)
 
-        except Exception as e:
-            graph_response = "Please enter a valid SPARQL Query. Your query caused the following error: " + str(e)
-
+            print("extracted entity" + extracted_entity)
+            print("extracted relation" + extracted_relation)
+            query_as_sparql = self.transformer.get_query_for_entity_relation(extracted_entity, extracted_relation)
+            print("Generated query: ", query_as_sparql)
+            graph_response = self.graphDB.execute_query(query_as_sparql)
+            if graph_response.strip() == "":
+                retried += 1
+            else:
+                break
 
         print("extracted entity" + extracted_entity)
         print("extracted relation" + extracted_relation)
+
+
         embedding_response = self.embedding_search.nearest_neighbor(extracted_entity, extracted_relation)
         formatted_embedding_response = self.transformer.transform_answer(message, embedding_response, 'Embeddings')
         if graph_response.strip() != "":
