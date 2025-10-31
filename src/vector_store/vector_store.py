@@ -179,7 +179,7 @@ class VectorStore:
 if __name__ == "__main__":
     vector_store = VectorStore()
 
-    vector_store.fill_vector_store()
+    # vector_store.fill_vector_store()
 
     # print(vector_store.entities_table.stats())
     # similar_items = vector_store.find_similar_relation('Who directed the movie G.I. Joe', k=5)

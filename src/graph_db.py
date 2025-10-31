@@ -69,6 +69,26 @@ class GraphDB:
                 print(entity, label)
                 writer.writerow([entity, label])
 
+    def get_entity_type(self, uri: str):
+        qid = uri.split('/')[-1]
+        query = f"""
+            SELECT ?type WHERE {{
+            <{uri}> <http://www.wikidata.org/prop/direct/P31> ?type .
+            }}
+        """
+        prepared_query = prepareQuery(query)
+        answer = ""
+
+        for row in self.graph.query(prepared_query):
+            if len(row) > 1:
+                for index, item in enumerate(row):
+                    answer += str(item)
+                    if index < len(row) - 1:
+                        answer += " and "
+            else:
+                answer += str(row[0]) + "\n"
+
+        return answer.split("entity/")[1]
 
 
 

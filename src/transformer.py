@@ -151,14 +151,14 @@ class Transformer:
         return None, None
 
 
-    def transform_answer(self, question:str, factual_answer: str, source: str) -> str:
+    def transform_answer(self, question:str, factual_answer: str, source: str, type="") -> str:
         print(f"Transforming answer: {factual_answer}")
         prompt = f"""
         Given the question: "{question}" and the factual answer: "{factual_answer}", generate a concise and informative answer.
         DO NOT ADD ANY ADDITIONAL INFORMATION THAT IS NOT PRESENT IN THE FACTUAL ANSWER. 
         ONLY TRANSFORM IT TO A NATURAL LANGUAGE ANSWER. 
         Use a helpful, engaging and conversational tone and ensure your answer sounds natural.
-        Append '({source} Answer)'"""
+        Append '({source} Answer)'{ 'and (type: '+ type if type else ""})'"""
         response = self.transform_llm.invoke([{"role": "user", "content": prompt}])
         return response.content
 

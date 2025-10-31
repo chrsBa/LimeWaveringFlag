@@ -6,8 +6,9 @@ from rdflib import URIRef
 
 
 class EmbeddingSearch:
-    def __init__(self, vector_store):
+    def __init__(self, vector_store, graphDB):
         self.vector_store = vector_store
+        self.graphDB = graphDB
         self.base_path = os.path.dirname(os.path.dirname(__file__))
         self.entity_embeddings = np.load(os.path.join(self.base_path, 'data', 'entity_embeds.npy'))
         self.relation_embeddings = np.load(os.path.join(self.base_path, 'data', 'relation_embeds.npy'))
@@ -43,7 +44,7 @@ class EmbeddingSearch:
             id2entity = {idx: name for name, idx in self.entity2id.items()}
             top_entity = id2entity[top_index]
 
-            print(top_entity)
-            return self.vector_store.entity2label.get(URIRef(top_entity))
+            print("top_entity: " + top_entity)
+            return (self.vector_store.entity2label.get(URIRef(top_entity)), self.graphDB.get_entity_type(top_entity))
         except Exception as e:
             return None
