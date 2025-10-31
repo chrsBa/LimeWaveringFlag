@@ -10,7 +10,7 @@ class MessageHandler:
         self.graphDB = GraphDB()
         self.vector_store = VectorStore()
         self.transformer = Transformer(self.vector_store)
-        self.embedding_search = EmbeddingSearch(self.vector_store, self.graphDB)
+        self.embedding_search = EmbeddingSearch(self.vector_store)
 
     def handle_message(self, message: str) -> tuple[str, str]:
         """
@@ -30,7 +30,8 @@ class MessageHandler:
         print("Generated query: ", query_as_sparql)
         graph_response = self.graphDB.execute_query(query_as_sparql)
 
-        embedding_response, response_type = self.embedding_search.nearest_neighbor(extracted_entity, extracted_relation)
+        embedding_response, top_entity = self.embedding_search.nearest_neighbor(extracted_entity, extracted_relation)
+        response_type =  self.graphDB.get_entity_type(top_entity)
         formatted_embedding_response = self.transformer.transform_answer(message, embedding_response, 'Embeddings', response_type)
         if graph_response.strip() != "":
             return (self.transformer.transform_answer(message, graph_response, 'Factual'),
