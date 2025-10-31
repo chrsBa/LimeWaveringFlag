@@ -5,7 +5,6 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
-import httpx
 import lancedb
 import rdflib
 import xxhash
@@ -28,20 +27,78 @@ class VectorStore:
 
         self.logger = logging.getLogger(__name__)
 
+        self.synonyms = synonyms = {
+                "award": ["award",
+                          "oscar",
+                          "prize"],
+                "publication date": [
+                    "release",
+                    "date",
+                    "released",
+                    "releases",
+                    "release date",
+                    "release_date"
+                    "publication",
+                    "launch",
+                    "broadcast",
+                    "launched",
+                    "come out",
+                ],
+                "executive producer": ["showrunner",
+                                       "executive producer"],
+                "screenwriter": ["screenwriter",
+                                 "scriptwriter",
+                                 "writer",
+                                 "story"],
+                "film editor": ["editor",
+                                "film editor"],
+                "country of origin": ["origin", "country", "country of origin"],
+                "director": [
+                    "directed",
+                    "director",
+                    "directs",
+                    "direct"],
+                "nominated for": [
+                    "nomination",
+                    "award",
+                    "finalist",
+                    "shortlist",
+                    "selection",
+                    "nominated for",
+                ],
+                "cost": ["budget",
+                         "cost"],
+                "production company": [
+                    "company",
+                    "company of production",
+                    "produced",
+                    "production company",
+                ],
+                "cast member": [
+                                "cast member",
+                                "actor",
+                                "actress",
+                                "cast"],
+                "genre": ["kind",
+                          "type",
+                          "genre"],
+            }
+
         self.entity2label = {}
         self.label2entity = {}
+        self.entity2description = {}
         self._load_entity_label_mapping()
 
     def find_similar_entity(self, estimated_label: str, k=1) -> List[dict]:
         print("entity estimate: " + estimated_label)
-        print("Finding similar entity for: ", estimated_label)
-        return (self.entities_table.search(query=estimated_label).where(f"metadata.type='entity'")
-                .where("LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%'")
+        return (self.entities_table.search(query=estimated_label)
+                .where("metadata.type = 'entity' AND (LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%')")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
     def find_similar_relation(self, estimated_label: str, k=1) -> List[dict]:
         print("relation estimate: " + estimated_label)
-        return (self.entities_table.search(query=estimated_label).where(f"metadata.type='relation'")
+        return (self.entities_table.search(query=estimated_label)
+                .where(f"metadata.type = 'relation' AND (LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%')")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
     def fill_vector_store(self):
@@ -49,7 +106,7 @@ class VectorStore:
         with ThreadPoolExecutor(max_workers=12) as executor:
             futures = {
                 executor.submit(self._process_entities, label, entity): label
-                for entity, label in self.entity2label.items()
+                for label, entity in self.label2entity.items()
             }
             for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Entities"):
                 label = futures[future]
@@ -70,12 +127,7 @@ class VectorStore:
             else:
                 entity_type = 'entity'
 
-            try:
-                description = (httpx.get(f"https://www.wikidata.org/wiki/Special:EntityData/{entity_code}.json")
-                           .json()['entities'][entity_code]['descriptions'].get('en', {}).get('value', ''))
-            except Exception as e:
-                description = ''
-
+            description = self.entity2description.get(entity_uri, "")
             if entity_type == 'relation':
                 content_to_vectorize = f"{entity_label}: {description}"
             else:
@@ -105,6 +157,17 @@ class VectorStore:
         with open(os.path.join(base_dir, 'data', 'entities.csv'), 'r', encoding="utf-8") as csv_file:
             self.entity2label = {rdflib.term.URIRef(ent): label for ent, label in csv.reader(csv_file)}
             self.label2entity = {v: k for k, v in self.entity2label.items()}
+
+        with open(os.path.join(base_dir, 'data', 'descriptions.csv'), 'r', encoding="utf-8") as csv_file:
+            self.entity2description = {rdflib.term.URIRef(ent): descr for ent, descr in csv.reader(csv_file)}
+
+        for label, synonyms in self.synonyms.items():
+            if label in self.label2entity:
+                entity_uri = self.label2entity[label]
+                self.entity2description[rdflib.term.URIRef(entity_uri)] = (
+                        self.entity2description.get(rdflib.term.URIRef(entity_uri), "") + " (movie)")
+                for synonym in synonyms:
+                    self.label2entity[synonym] = rdflib.term.URIRef(entity_uri)
 
     def _instantiate_table(self, table_name: str):
         try:

@@ -11,7 +11,6 @@ class MessageHandler:
         self.vector_store = VectorStore()
         self.transformer = Transformer(self.vector_store)
         self.embedding_search = EmbeddingSearch(self.vector_store)
-        self.retries = 2
 
     def handle_message(self, message: str) -> tuple[str, str]:
         """
@@ -23,25 +22,13 @@ class MessageHandler:
         Returns:
             str: The response after processing the message.
         """
-        retried = 0
+        extracted_relation, extracted_entity = self.transformer.extract_text_entities(message)
 
-        graph_response = ""
-        while retried < self.retries:
-            extracted_relation, extracted_entity = self.transformer.extract_text_entities(message, retried)
-
-            print("extracted entity" + extracted_entity)
-            print("extracted relation" + extracted_relation)
-            query_as_sparql = self.transformer.get_query_for_entity_relation(extracted_entity, extracted_relation)
-            print("Generated query: ", query_as_sparql)
-            graph_response = self.graphDB.execute_query(query_as_sparql)
-            if graph_response.strip() == "":
-                retried += 1
-            else:
-                break
-
-        print("extracted entity" + extracted_entity)
-        print("extracted relation" + extracted_relation)
-
+        print("extracted entity " + extracted_entity)
+        print("extracted relation " + extracted_relation)
+        query_as_sparql = self.transformer.get_query_for_entity_relation(extracted_entity, extracted_relation)
+        print("Generated query: ", query_as_sparql)
+        graph_response = self.graphDB.execute_query(query_as_sparql)
 
         embedding_response = self.embedding_search.nearest_neighbor(extracted_entity, extracted_relation)
         formatted_embedding_response = self.transformer.transform_answer(message, embedding_response, 'Embeddings')

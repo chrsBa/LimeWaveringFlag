@@ -11,9 +11,9 @@ class EmbeddingSearch:
         self.base_path = os.path.dirname(os.path.dirname(__file__))
         self.entity_embeddings = np.load(os.path.join(self.base_path, 'data', 'entity_embeds.npy'))
         self.relation_embeddings = np.load(os.path.join(self.base_path, 'data', 'relation_embeds.npy'))
+        self.entity2id, self.relation2id = self.load_mappings()
 
-
-    def nearest_neighbor(self, entity_uri, relation_uri) -> str:
+    def load_mappings(self):
         entity2id = {}
         relation2id = {}
 
@@ -27,17 +27,23 @@ class EmbeddingSearch:
                 idx, name = line.strip().split()
                 entity2id[name] = int(idx)
 
+        return entity2id, relation2id
 
-        relation_vector = self.relation_embeddings[relation2id[relation_uri]]
-        entity_vector = self.entity_embeddings[entity2id[entity_uri]]
+    def nearest_neighbor(self, entity_uri, relation_uri) -> str:
+        try:
+            relation_vector = self.relation_embeddings[self.relation2id[relation_uri]]
+            entity_vector = self.entity_embeddings[self.entity2id[entity_uri]]
 
-        target = entity_vector+relation_vector
+            target = np.atleast_2d(entity_vector+relation_vector)
 
-        distances = pairwise_distances(target.reshape(1, -1), self.entity_embeddings, metric='cosine').flatten()
+            distances = pairwise_distances(target, self.entity_embeddings)
 
-        top_index = np.argmin(distances)
+            top_index = np.argmin(distances)
 
-        id2entity = {idx: name for name, idx in entity2id.items()}
-        top_entity = id2entity[top_index]
-        
-        return self.vector_store.entity2label.get(URIRef(top_entity))
+            id2entity = {idx: name for name, idx in self.entity2id.items()}
+            top_entity = id2entity[top_index]
+
+            print(top_entity)
+            return self.vector_store.entity2label.get(URIRef(top_entity))
+        except Exception as e:
+            return None

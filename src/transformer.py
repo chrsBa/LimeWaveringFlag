@@ -19,19 +19,15 @@ class Transformer:
                         ?obj rdfs:label ?objLabel .
                     }}
                 }}
-                LIMIT 1
                 """
 
 
-    def extract_text_entities(self, text_query: str, retry=0) ->tuple[str, str]:
-        entity_search_query = text_query
-        relation_search_query = text_query
-        if retry == 0:
-            relation_search_query, entity_search_query = self.extract_named_entities(text_query)
-            if entity_search_query is None:
-                entity_search_query = text_query
-            if relation_search_query is None:
-                relation_search_query = text_query
+    def extract_text_entities(self, text_query: str) ->tuple[str, str]:
+        relation_search_query, entity_search_query = self.extract_named_entities(text_query)
+        if entity_search_query is None:
+            entity_search_query = text_query
+        if relation_search_query is None:
+            relation_search_query = text_query
 
         entity_search_query = self.clean_text_query(entity_search_query)
 

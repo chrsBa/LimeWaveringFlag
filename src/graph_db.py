@@ -1,5 +1,7 @@
 import os
 import csv
+
+import rdflib
 from rdflib import Graph
 from rdflib.plugins.sparql.processor import prepareQuery
 
@@ -30,23 +32,44 @@ class GraphDB:
         answer = ""
 
         for row in self.graph.query(prepared_query):
-            answer += str(row[0]) + "\n"
+            if len(row) > 1:
+                for index, item in enumerate(row):
+                    answer += str(item)
+                    if index < len(row) - 1:
+                        answer += " and "
+            else:
+                answer += str(row[0]) + "\n"
 
         return answer
 
     def extract_entities(self):
         # Extract entities and their labels from the graph
-        ent2lbl = {ent: str(lbl) for ent, lbl in self.graph.subject_objects()}
-        lbl2ent = {lbl: ent for ent, lbl in ent2lbl.items()}
+        entity2descriptions = {}
+        entity2label = {}
+        for s, p, o in self.graph:
+            if p == rdflib.term.URIRef("http://www.w3.org/2000/01/rdf-schema#label"):
+                entity2label[s] = str(o)
+            if p == rdflib.term.URIRef("http://schema.org/description"):
+                entity2descriptions[s] = str(o)
 
         # Save to CSV
         src_dir = os.path.dirname(__file__)
         base_dir = os.path.dirname(src_dir)
         csv_path = os.path.join(base_dir, "data", "entities.csv")
+
+        descr_csv_path = os.path.join(base_dir, "data", "descriptions.csv")
+        with open(descr_csv_path, mode="w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            for entity, descr in entity2descriptions.items():
+                writer.writerow([entity, descr])
+
         with open(csv_path, mode="w", newline="", encoding="utf-8") as csvfile:
             writer = csv.writer(csvfile)
-            for entity, label in ent2lbl.items():
+            for entity, label in entity2label.items():
+                print(entity, label)
                 writer.writerow([entity, label])
+
+
 
 
 

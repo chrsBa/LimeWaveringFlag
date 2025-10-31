@@ -26,8 +26,13 @@ class Agent:
         """Callback function to handle new messages."""
         # Implement your agent logic here, e.g., respond to the message.
         room.post_messages("Let's have a look...")
-        text_query = message.split(":")[1]
-        both_answers_needed = message.split(":")[0].split("Please answer this question")[1] == ""
+        message_parts = message.split(":")
+        if len(message_parts) > 1:
+            text_query = message.split(":")[1]
+            both_answers_needed = message.split(":")[0].split("Please answer this question")[1] == ""
+        else:
+            both_answers_needed = True
+            text_query = message
         factual_answer_needed = both_answers_needed or message.split(":")[0].split("Please answer this question")[1] == " with a factual approach"
         embedding_answer_needed = both_answers_needed or message.split(":")[0].split("Please answer this question")[1] == " with an embedding approach"
         factual_response, embedding_response = self.message_handler.handle_message(text_query)
@@ -36,8 +41,10 @@ class Agent:
         if embedding_response == "" and embedding_answer_needed:
             embedding_response = 'I could not find an answer based on embeddings to your question. Please try rephrasing it or ask something else.'
         if factual_answer_needed:
+            print("factual response: " + factual_response)
             room.post_messages(factual_response)
         if embedding_answer_needed:
+            print("embedding response: " + embedding_response)
             room.post_messages(embedding_response)
 
     def on_new_reaction(self, reaction : str, message_ordinal : int, room : Chatroom):

@@ -10,10 +10,10 @@ logging.getLogger("httpx").setLevel(logging.ERROR)  # or logging.ERROR to suppre
 # https://lancedb.github.io/lancedb/embeddings/default_embedding_functions
 # Ollama host is only set if defined in environment variables -> needed for containerization
 if os.getenv("OLLAMA_HOST"):
-    func = get_registry().get("ollama").create(name="V4lentin1879/jina-bert-code-f16:latest",
+    func = get_registry().get("ollama").create(name="snowflake-arctic-embed:335m",
                                                host=os.getenv("OLLAMA_HOST"))
 else:
-    func = get_registry().get("ollama").create(name="V4lentin1879/jina-bert-code-f16:latest")
+    func = get_registry().get("ollama").create(name="snowflake-arctic-embed:335m")
 
 class EntityMetadata(LanceModel):
     entity: str

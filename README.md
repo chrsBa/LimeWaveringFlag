@@ -16,12 +16,12 @@ pip install -r requirements.txt
 - Install ollama (https://anaconda.org/conda-forge/ollama)
 - Make sure your Ollama server is running
 - Pull the Ollama model gemma3:4b (https://medium.com/@gabrielrodewald/running-models-with-ollama-step-by-step-60b6f6125807)
-- Pull embbedding model
+- Pull embbedding model snowflake-arctic-embed:335m
 ```
 conda install conda-forge::ollama
 ollama serve
 ollama pull gemma3:4b
-ollama pull V4lentin1879/jina-bert-code-f16:latest
+ollama pull snowflake-arctic-embed:335m
 ```
 
 ## Add you credentials
