@@ -77,7 +77,10 @@ class GraphDB:
         """
         answer = self.execute_query(query)
 
-        return answer.split("entity/")[1]
+        try:
+            return answer.split("entity/")[1]
+        except:
+            return "Unknown"
 
 
 
