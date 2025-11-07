@@ -47,4 +47,4 @@ class EmbeddingSearch:
             print("top_entity: " + top_entity)
             return (self.vector_store.entity2label.get(URIRef(top_entity)), self.graphDB.get_entity_type(top_entity))
         except Exception as e:
-            return None
+            return None, None
