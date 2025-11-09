@@ -27,14 +27,18 @@ class Agent:
         """Callback function to handle new messages."""
         # Implement your agent logic here, e.g., respond to the message.
         room.post_messages("Let's have a look...")
-        message_parts = message.split(":")
-        if len(message_parts) > 1:
-            text_query = message.split(":")[1]
-            both_answers_needed = message.split(":")[0].split("Please answer this question")[1] == ""
-        elif re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggestions?\b", message, re.IGNORECASE):
-            both_answers_needed = False
-            text_query = message
-        else:
+        try:
+            message_parts = message.split(":")
+            if len(message_parts) > 1 and len(message_parts[0].split("Please answer this question")) > 1:
+                text_query = message_parts[1]
+                both_answers_needed = message_parts[0].split("Please answer this question")[1] == ""
+            elif re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggestions?\b", message, re.IGNORECASE):
+                both_answers_needed = False
+                text_query = message
+            else:
+                both_answers_needed = True
+                text_query = message
+        except:
             both_answers_needed = True
             text_query = message
         factual_answer_needed = both_answers_needed or message.split(":")[0].split("Please answer this question")[1] == " with a factual approach"

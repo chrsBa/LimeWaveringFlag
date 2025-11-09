@@ -38,11 +38,11 @@ class MessageHandler:
 
             embedding_response, response_type = self.embedding_search.nearest_neighbor(extracted_entity, extracted_relation)
             formatted_embedding_response = self.transformer.transform_answer(message, embedding_response, 'Embeddings', response_type)
-        
+
         else:
             suggestion_response = self.suggestion_search.find_suggestions(extracted_entity)
             formatted_suggestion_response = self.transformer.transform_answer(message, suggestion_response, 'Suggestion')
-            
+
         if graph_response.strip() != "":
             return (self.transformer.transform_answer(message, graph_response, 'Factual'),
                     formatted_embedding_response)
