@@ -15,7 +15,7 @@ class SuggestionSearch:
         self.entity2id, self.relation2id = self.embedding_search.load_mappings()
 
 
-    def find_suggestions(self, entity_uris) -> str:
+    def find_suggestions(self, entity_uris: list[str]) -> str:
         try:
             entity_vectors = [self.entity_embeddings[self.entity2id[entity_uri]] for entity_uri in entity_uris]
             print(entity_vectors)

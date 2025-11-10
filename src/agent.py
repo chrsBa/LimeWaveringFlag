@@ -4,6 +4,9 @@ from cred import USERNAME, PASSWORD
 from src.message_handler import MessageHandler
 import re
 
+from transformer import Transformer
+from vector_store.vector_store import VectorStore
+
 DEFAULT_HOST_URL = 'https://speakeasy.ifi.uzh.ch'
 
 
@@ -17,7 +20,9 @@ class Agent:
         self.speakeasy.register_callback(self.on_new_message, EventType.MESSAGE)
         self.speakeasy.register_callback(self.on_new_reaction, EventType.REACTION)
 
-        self.message_handler = MessageHandler()
+        self.vector_store = VectorStore()
+        self.message_handler = MessageHandler(self.vector_store)
+        self.transformer = Transformer(self.vector_store)
 
     def listen(self):
         """Start listening for events."""
@@ -25,36 +30,52 @@ class Agent:
 
     def on_new_message(self, message : str, room : Chatroom):
         """Callback function to handle new messages."""
-        # Implement your agent logic here, e.g., respond to the message.
+        # try:
         room.post_messages("Let's have a look...")
+        suggestion_response_needed = False
+        factual_answer_needed = False
+        embedding_answer_needed = False
+
         try:
-            message_parts = message.split(":")
-            if len(message_parts) > 1 and len(message_parts[0].split("Please answer this question")) > 1:
-                text_query = message_parts[1]
-                both_answers_needed = message_parts[0].split("Please answer this question")[1] == ""
-            elif re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggestions?\b", message, re.IGNORECASE):
-                both_answers_needed = False
-                text_query = message
+            if re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggestions?\b", message, re.IGNORECASE):
+                suggestion_response_needed = True
+                extracted_entities_list = self.transformer.extract_multiple_entities(message)
             else:
-                both_answers_needed = True
-                text_query = message
+                extracted_relation, extracted_entity = self.transformer.extract_text_entities(message)
+                print("extracted entity " + extracted_entity)
+                print("extracted relation " + extracted_relation)
+                message_parts = message.split(":")
+                if len(message_parts) > 1 and len(message_parts[0].split("Please answer this question")) > 1:
+                    text_query = message_parts[1]
+                    factual_answer_needed = message.split(":")[0].split("Please answer this question")[
+                                                1] == " with a factual approach"
+                    embedding_answer_needed = message.split(":")[0].split("Please answer this question")[
+                                                  1] == " with an embedding approach"
+                else:
+                    factual_answer_needed = True
+                    embedding_answer_needed = True
+                    text_query = message
         except:
-            both_answers_needed = True
+            factual_answer_needed = True
+            embedding_answer_needed = True
             text_query = message
-        factual_answer_needed = both_answers_needed or message.split(":")[0].split("Please answer this question")[1] == " with a factual approach"
-        embedding_answer_needed = both_answers_needed or message.split(":")[0].split("Please answer this question")[1] == " with an embedding approach"
-        factual_response, embedding_response, suggestion_response = self.message_handler.handle_message(text_query)
-        if factual_response == "" and factual_answer_needed:
-            factual_response = 'I could not find a factual answer to your question. Please try rephrasing it or ask something else.'
-        if embedding_response == "" and embedding_answer_needed:
-            embedding_response = 'I could not find an answer based on embeddings to your question. Please try rephrasing it or ask something else.'
+
+        # except Exception as e:
+        #     print(e)
+        #     room.post_messages("Sorry, I could not understand your question. Please try rephrasing it.")
+        #     return
+
+
         if factual_answer_needed:
+            factual_response = self.message_handler.handle_factual_question(text_query, extracted_entity, extracted_relation)
             print("factual response: " + factual_response)
             room.post_messages(factual_response)
         if embedding_answer_needed:
+            embedding_response = self.message_handler.handle_embedding_question(text_query, extracted_entity, extracted_relation)
             print("embedding response: " + embedding_response)
             room.post_messages(embedding_response)
-        else:
+        if suggestion_response_needed:
+            suggestion_response = self.message_handler.handle_suggestion_question(message, extracted_entities_list)
             print("suggestion response: " + suggestion_response)
             room.post_messages(suggestion_response)
 

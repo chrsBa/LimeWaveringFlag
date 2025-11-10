@@ -7,44 +7,27 @@ from .suggestion_search import SuggestionSearch
 
 class MessageHandler:
 
-    def __init__(self):
+    def __init__(self, vector_store: VectorStore):
         self.graphDB = GraphDB()
-        self.vector_store = VectorStore()
+        self.vector_store = vector_store
         self.transformer = Transformer(self.vector_store)
-        self.embedding_search = EmbeddingSearch(self.vector_store, self.graphDB)
+        self.embedding_search = EmbeddingSearch(self.vector_store)
         self.suggestion_search = SuggestionSearch(self.vector_store, self.embedding_search)
 
-    def handle_message(self, message: str) -> tuple[str, str]:
-        """
-        Orchestrate message processing and response generation.
+    def handle_factual_question(self, message: str, extracted_entity: str, extracted_relation: str) -> str:
+        query_as_sparql = self.transformer.get_query_for_entity_relation(extracted_entity, extracted_relation)
+        graph_response =  self.graphDB.execute_query(query_as_sparql)
+        if graph_response.strip() == "":
+            return "I could not find a factual answer to your question. Please try rephrasing it or ask something else."
+        return self.transformer.transform_answer(message, graph_response, 'Factual')
 
-        Args:
-            message (str): The incoming message to be processed.
+    def handle_embedding_question(self, message: str, extracted_entity: str, extracted_relation: str) -> str:
+        embedding_response, response_type = self.embedding_search.nearest_neighbor(extracted_entity, extracted_relation)
+        if embedding_response.strip() == "":
+            return "I could not find an answer based on embeddings to your question. Please try rephrasing it or ask something else."
+        return self.transformer.transform_answer(message, embedding_response, 'Embeddings',
+                                                                         response_type)
 
-        Returns:
-            str: The response after processing the message.
-        """
-        extracted_relation, extracted_entity = self.transformer.extract_text_entities(message)
-
-        print("extracted entity " + extracted_entity)
-        print("extracted relation " + extracted_relation)
-        graph_response = ""
-        formatted_embedding_response = ""
-
-        if extracted_relation:
-            query_as_sparql = self.transformer.get_query_for_entity_relation(extracted_entity, extracted_relation)
-            print("Generated query: ", query_as_sparql)
-            graph_response = self.graphDB.execute_query(query_as_sparql)
-
-            embedding_response, response_type = self.embedding_search.nearest_neighbor(extracted_entity, extracted_relation)
-            formatted_embedding_response = self.transformer.transform_answer(message, embedding_response, 'Embeddings', response_type)
-
-        else:
-            suggestion_response = self.suggestion_search.find_suggestions(extracted_entity)
-            formatted_suggestion_response = self.transformer.transform_answer(message, suggestion_response, 'Suggestion')
-
-        if graph_response.strip() != "":
-            return (self.transformer.transform_answer(message, graph_response, 'Factual'),
-                    formatted_embedding_response)
-        print(formatted_suggestion_response)
-        return graph_response, formatted_embedding_response, formatted_suggestion_response
+    def handle_suggestion_question(self, message: str, extracted_entities: list[str]) -> str:
+        suggestion_response = self.suggestion_search.find_suggestions(extracted_entities)
+        return self.transformer.transform_answer(message, suggestion_response, 'Suggestion')

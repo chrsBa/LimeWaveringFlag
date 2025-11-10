@@ -21,17 +21,12 @@ class Transformer:
                 }}
                 """
 
-
     def extract_text_entities(self, text_query: str) ->tuple[str, str]:
-        if re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggestions?\b", text_query, re.IGNORECASE):
-            return None, self.extract_multiple_entities(text_query)
-        
-        else:
-            relation_search_query, entity_search_query = self.extract_named_entities(text_query)
-            if entity_search_query is None:
-                entity_search_query = text_query
-            if relation_search_query is None:
-                relation_search_query = text_query
+        relation_search_query, entity_search_query = self.extract_named_entities(text_query)
+        if entity_search_query is None:
+            entity_search_query = text_query
+        if relation_search_query is None:
+            relation_search_query = text_query
  
         entity_search_query = self.clean_text_query(entity_search_query)
 
@@ -44,7 +39,7 @@ class Transformer:
 
         return pred, node
     
-    def extract_multiple_entities(self, text_query: str):
+    def extract_multiple_entities(self, text_query: str) -> list[str]:
         entities_search_query = self.clean_text_query(text_query)
         entities = []
         match = re.search(r"(?:like|such as|including|for example)\s+(.*?)(?:\bcan you\b|\bgive\b|\brecommend\b|[?.!]|$)", entities_search_query, re.IGNORECASE)
@@ -52,7 +47,7 @@ class Transformer:
         movies = match.group(1) if match else entities_search_query
         
         for part in movies.split(","):
-            entities.append(self.vector_store.find_similar_relation(part))
+            entities.append(self.vector_store.find_similar_entity(part))
 
         print(entities)
         return entities
