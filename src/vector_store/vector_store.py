@@ -21,7 +21,7 @@ class VectorStore:
         base_dir = os.path.dirname(__file__)
         self.vector_db_path = os.path.join(base_dir, '..', '..', 'data', 'lancedb')
         self.entities_table_name = 'entities'
-        self.movies_properties_table_name = 'movies_properties'
+        self.movies_properties_table_name = 'movie_properties'
         self.movies_labels_table_name = 'movie_labels'
         self.movie_relations_table_name = 'relations'
         self.vector_db = lancedb.connect(self.vector_db_path)
@@ -94,12 +94,6 @@ class VectorStore:
         self.entity2description = {}
         self._load_entity_label_mapping()
 
-    # def find_similar_entity(self, estimated_label: str, k=1) -> List[dict]:
-    #     print("entity estimate: " + estimated_label)
-    #     return (self.entities_table.search(query=estimated_label)
-    #             .where("metadata.type = 'entity' AND (LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%')")
-    #             .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
-
     def find_similar_relation(self, estimated_label: str, k=1) -> List[dict]:
         print("relation estimate: " + estimated_label)
         return (self.relations_table.search(query=estimated_label)
@@ -114,24 +108,6 @@ class VectorStore:
         return (self.movie_properties_table.search(query=movie_properties)
                 .where(f"metadata.label NOT IN {str(exclude_labels).replace('[', '(').replace(']', ')')}")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
-
-    def fill_entity_vector_store(self):
-        batcher = BatchInserter(self.entities_table)
-        batcher.start()
-        with ThreadPoolExecutor(max_workers=12) as executor:
-            futures = {
-                executor.submit(self._process_entities, label, entity, batcher): label
-                for label, entity in self.label2entity.items()
-            }
-            for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Entities"):
-                label = futures[future]
-                try:
-                    future.result()
-                except Exception as e:
-                    self.logger.error(f"Error while processing entity {label}: {e}")
-
-        batcher.finish()
-        self.logger.debug("Vectorization complete.")
 
     def fill_relations_vector_store(self):
         batcher = BatchInserter(self.relations_table)
@@ -213,35 +189,6 @@ class VectorStore:
 
         batcher.finish()
         self.logger.debug("Vectorization complete.")
-
-    def _process_entities(self, entity_label: str, entity_uri: str, batcher: BatchInserter):
-        try:
-            entity_code = entity_uri.split('/')[-1]
-
-            if entity_code.startswith('P'):
-                entity_type = 'relation'
-            else:
-                entity_type = 'entity'
-
-            description = self.entity2description.get(entity_uri, "")
-            if entity_type == 'relation':
-                content_to_vectorize = f"{entity_label}: {description}"
-            else:
-                content_to_vectorize = entity_label
-
-            document = Document(
-                id=uuid.uuid4().hex,
-                page_content=content_to_vectorize,
-                metadata={
-                    "entity": entity_uri,
-                    "label": entity_label,
-                    "description": description,
-                    "type": entity_type,
-                    }
-                )
-            batcher.add_document(document)
-        except Exception as e:
-            self.logger.error(f"Error processing entity {entity_label}: {e}")
 
     def _process_relation(self, entity_label: str, entity_uri: str, batcher: BatchInserter):
         try:

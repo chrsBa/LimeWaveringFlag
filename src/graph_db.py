@@ -209,7 +209,7 @@ class GraphDB:
             "genre": "http://www.wikidata.org/prop/direct/P136",
             "award_received": "http://www.wikidata.org/prop/direct/P166",
             "main_subject": "http://www.wikidata.org/prop/direct/P921",
-            "country_of_origin": "http://www.wikidata.org/prop/direct/495",
+            "country_of_origin": "http://www.wikidata.org/prop/direct/P495",
             "production_company": "http://www.wikidata.org/prop/direct/P272",
         }
 
