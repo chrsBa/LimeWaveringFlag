@@ -75,7 +75,6 @@ class GraphDB:
             rdflib.term.URIRef('http://www.wikidata.org/entity/Q17123180'), #'sequel film'
             rdflib.term.URIRef('http://www.wikidata.org/entity/Q202866'), #'animated film'
             rdflib.term.URIRef('http://www.wikidata.org/entity/Q622548'), #'parody film'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q622548'), #'parody film'
             rdflib.term.URIRef('http://www.wikidata.org/entity/Q10590726'), #'video album'
             rdflib.term.URIRef('http://www.wikidata.org/entity/Q917641'), #'open-source film'
             rdflib.term.URIRef('http://www.wikidata.org/entity/Q52207399'), #'film based on a novel'
