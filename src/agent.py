@@ -30,13 +30,12 @@ class Agent:
 
     def on_new_message(self, message : str, room : Chatroom):
         """Callback function to handle new messages."""
-        # try:
-        room.post_messages("Let's have a look...")
-        suggestion_response_needed = False
-        factual_answer_needed = False
-        embedding_answer_needed = False
-
         try:
+            room.post_messages("Let's have a look...")
+            suggestion_response_needed = False
+            factual_answer_needed = False
+            embedding_answer_needed = False
+
             if re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggestions?\b", message, re.IGNORECASE):
                 suggestion_response_needed = True
                 extracted_entities_list = self.transformer.extract_multiple_entities(message)
@@ -55,15 +54,11 @@ class Agent:
                     factual_answer_needed = True
                     embedding_answer_needed = True
                     text_query = message
-        except:
-            factual_answer_needed = True
-            embedding_answer_needed = True
-            text_query = message
 
-        # except Exception as e:
-        #     print(e)
-        #     room.post_messages("Sorry, I could not understand your question. Please try rephrasing it.")
-        #     return
+        except Exception as e:
+            print(e)
+            room.post_messages("Sorry, I could not understand your question. Please try rephrasing it.")
+            return
 
 
         if factual_answer_needed:

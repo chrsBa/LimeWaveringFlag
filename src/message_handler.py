@@ -12,7 +12,7 @@ class MessageHandler:
         self.vector_store = vector_store
         self.transformer = Transformer(self.vector_store)
         self.embedding_search = EmbeddingSearch(self.vector_store)
-        self.suggestion_search = SuggestionSearch(self.vector_store, self.embedding_search)
+        self.suggestion_search = SuggestionSearch(self.vector_store, self.graphDB)
 
     def handle_factual_question(self, message: str, extracted_entity: str, extracted_relation: str) -> str:
         query_as_sparql = self.transformer.get_query_for_entity_relation(extracted_entity, extracted_relation)
@@ -30,4 +30,6 @@ class MessageHandler:
 
     def handle_suggestion_question(self, message: str, extracted_entities: list[str]) -> str:
         suggestion_response = self.suggestion_search.find_suggestions(extracted_entities)
-        return self.transformer.transform_answer(message, suggestion_response, 'Suggestion')
+        if len(suggestion_response) == 0:
+            return "I could not find any suggestions based on your input. Please try rephrasing it or provide different entities."
+        return self.transformer.transform_answer(message, ', '.join(suggestion_response), 'Suggestion')

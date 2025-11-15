@@ -15,7 +15,7 @@ if os.getenv("OLLAMA_HOST"):
 else:
     func = get_registry().get("ollama").create(name="snowflake-arctic-embed:335m")
 
-class EntityMetadata(LanceModel):
+class Metadata(LanceModel):
     entity: str
     label: str
     description: str
@@ -25,4 +25,5 @@ class TableSchema(LanceModel):
     vector: Vector(func.ndims()) = func.VectorField()
     id: str
     text: str = func.SourceField()
-    metadata: Optional[EntityMetadata] = None
+    metadata: Optional[Metadata] = None
+

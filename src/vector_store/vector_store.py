@@ -21,13 +21,16 @@ class VectorStore:
         base_dir = os.path.dirname(__file__)
         self.vector_db_path = os.path.join(base_dir, '..', '..', 'data', 'lancedb')
         self.entities_table_name = 'entities'
+        self.movies_properties_table_name = 'movies_properties'
+        self.movies_labels_table_name = 'movie_labels'
         self.vector_db = lancedb.connect(self.vector_db_path)
         self.entities_table = self._instantiate_table(self.entities_table_name)
-        self.batcher = BatchInserter(self.entities_table)
+        self.movie_properties_table = self._instantiate_table(self.movies_properties_table_name)
+        self.movie_labels_table = self._instantiate_table(self.movies_labels_table_name)
 
         self.logger = logging.getLogger(__name__)
 
-        self.synonyms = synonyms = {
+        self.synonyms = {
                 "award": ["award",
                           "oscar",
                           "prize"],
@@ -101,11 +104,20 @@ class VectorStore:
                 .where(f"metadata.type = 'relation' AND (LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%')")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
-    def fill_vector_store(self):
-        self.batcher.start()
+    def find_movie_with_label(self, label: str) -> List[dict]:
+        return (self.movie_labels_table.search(query=label)
+                .limit(1).to_list())
+
+    def find_similar_movies(self, movie_properties: str, k=5) -> List[dict]:
+        return (self.movie_properties_table.search(query=movie_properties)
+                .limit(k).to_list())
+
+    def fill_entity_vector_store(self):
+        batcher = BatchInserter(self.entities_table)
+        batcher.start()
         with ThreadPoolExecutor(max_workers=12) as executor:
             futures = {
-                executor.submit(self._process_entities, label, entity): label
+                executor.submit(self._process_entities, label, entity, batcher): label
                 for label, entity in self.label2entity.items()
             }
             for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Entities"):
@@ -115,10 +127,72 @@ class VectorStore:
                 except Exception as e:
                     self.logger.error(f"Error while processing entity {label}: {e}")
 
-        self.batcher.finish()
+        batcher.finish()
         self.logger.debug("Vectorization complete.")
 
-    def _process_entities(self, entity_label: str, entity_uri: str):
+    def fill_movie_properties_vector_store(self):
+        batcher = BatchInserter(self.movie_properties_table, batch_size=200)
+        batcher.start()
+
+        vect_dir = os.path.dirname(__file__)
+        src_dir = os.path.dirname(vect_dir)
+        base_dir = os.path.dirname(src_dir)
+        movies = {}
+        with open(os.path.join(base_dir, 'data', 'movies_with_properties.csv'), 'r', encoding="utf-8") as csv_file:
+            rows = csv.reader(csv_file)
+            for row in rows:
+                # Create a string for each movie with its properties
+                movies[row[1]] = {
+                    "label": row[0],
+                    "properties": ', '.join([str(row[2]), str(row[3]), str(row[4]), str(row[5]), str(row[6]), str(row[7])])
+                }
+
+
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            futures = {
+                executor.submit(self._process_movie_properties, entity, data["properties"], data["label"], batcher): entity
+                for entity, data in movies.items()
+            }
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Entities"):
+                entity = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    self.logger.error(f"Error while processing entity {entity}: {e}")
+
+        batcher.finish()
+        self.logger.debug("Vectorization complete.")
+
+    def fill_movie_labels_vector_store(self):
+        batcher = BatchInserter(self.movie_labels_table, batch_size=200)
+        batcher.start()
+
+        vect_dir = os.path.dirname(__file__)
+        src_dir = os.path.dirname(vect_dir)
+        base_dir = os.path.dirname(src_dir)
+        movies = {}
+        with open(os.path.join(base_dir, 'data', 'movies_with_properties.csv'), 'r', encoding="utf-8") as csv_file:
+            rows = csv.reader(csv_file)
+            for row in rows:
+                # Create a string for each movie with its properties
+                movies[row[1]] = row[0]
+
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            futures = {
+                executor.submit(self._process_movie_labels, entity, label, batcher): entity
+                for entity, label in movies.items()
+            }
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Movies"):
+                entity = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    self.logger.error(f"Error while processing entity {entity}: {e}")
+
+        batcher.finish()
+        self.logger.debug("Vectorization complete.")
+
+    def _process_entities(self, entity_label: str, entity_uri: str, batcher: BatchInserter):
         try:
             entity_code = entity_uri.split('/')[-1]
 
@@ -143,9 +217,41 @@ class VectorStore:
                     "type": entity_type,
                     }
                 )
-            self.batcher.add_document(document)
+            batcher.add_document(document)
         except Exception as e:
             self.logger.error(f"Error processing entity {entity_label}: {e}")
+
+    def _process_movie_properties(self, entity_uri: str, properties: str, label: str, batcher: BatchInserter):
+        try:
+            document = Document(
+                id=uuid.uuid4().hex,
+                page_content=properties,
+                metadata={
+                    "entity": entity_uri,
+                    "label": label,
+                    "description": properties,
+                    "type": '',
+                }
+            )
+            batcher.add_document(document)
+        except Exception as e:
+            self.logger.error(f"Error processing entity {entity_uri}: {e}")
+
+    def _process_movie_labels(self, entity_uri: str, label: str, batcher: BatchInserter):
+        try:
+            document = Document(
+                id=uuid.uuid4().hex,
+                page_content=label,
+                metadata={
+                    "entity": entity_uri,
+                    "label": label,
+                    "description": '',
+                    "type": '',
+                }
+            )
+            batcher.add_document(document)
+        except Exception as e:
+            self.logger.error(f"Error processing entity {entity_uri}: {e}")
 
     def _compute_hash(self, text):
         return xxhash.xxh64(text).hexdigest()
@@ -178,9 +284,6 @@ class VectorStore:
 
 if __name__ == "__main__":
     vector_store = VectorStore()
-    vector_store.fill_vector_store()
-
-    # print(vector_store.entities_table.stats())
-    # similar_items = vector_store.find_similar_relation('Who directed the movie G.I. Joe', k=5)
-    # for similar_item in similar_items:
-    #     print(similar_item['metadata'])
+    vector_store.fill_movie_labels_vector_store()
+    vector_store.fill_movie_properties_vector_store()
+    vector_store.fill_entity_vector_store()

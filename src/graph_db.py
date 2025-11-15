@@ -69,6 +69,97 @@ class GraphDB:
                 print(entity, label)
                 writer.writerow([entity, label])
 
+    def extract_movies(self):
+        relevant_types = [
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q11424'), #'film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q17123180'), #'sequel film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q202866'), #'animated film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q622548'), #'parody film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q622548'), #'parody film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q10590726'), #'video album'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q917641'), #'open-source film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q52207399'), #'film based on a novel'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q31235'), #'remake'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q24862'), #'short film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q104840802'), #'film remake'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q112158242'), #'Tom and Jerry film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q24856'), #'film series'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q117467246'), #'animated television series'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q2484376'), #'thriller film',
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q20650540'), #'anime film',
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q13593818'), #'film trilogy'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q17517379'), #'animated short film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q678345'), #'prequel'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q1257444'), #'film adaptation'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q52162262'), #'film based on literature'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q118189123'), #'animated film reboot'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q1259759'), #'miniseries'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q506240'), #'television film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q5398426'),  # 'television series'
+        ]
+
+        relevant_properties = [
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P31"),  # instance of
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P57"),  # director
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P58"),  # screenwriter
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P577"),  # release date
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P136"),  # genre
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P166"),  # award received
+        ]
+        relevant_entities = {}
+        entity2label = {}
+
+        for s, p, o in self.graph:
+            if p == rdflib.term.URIRef("http://www.w3.org/2000/01/rdf-schema#label"):
+                entity2label[s] = str(o)
+        for s, p, o in self.graph:
+            if p == rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P31") and o in relevant_types:
+                if s not in relevant_entities:
+                    relevant_entities[s] = {
+                        "instance_of":[entity2label.get(o, str(o))],
+                        "director": [],
+                        "screenwriter": [],
+                        "publication_date": None,
+                        "genre": [],
+                        "award_received": [],
+                    }
+                else:
+                    relevant_entities[s]["instance_of"].append(entity2label.get(o, str(o)))
+
+        for s, p, o in self.graph:
+            if s in relevant_entities and p in relevant_properties:
+                if p == rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P57"):
+                    relevant_entities[s]["director"].append(entity2label.get(o, str(o)))
+                elif p == rdflib.term.URIRef("http://www.w3.org/2000/01/rdf-schema#label"):
+                    relevant_entities[s].append(entity2label.get(o, str(o)))
+                elif p == rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P58"):
+                    relevant_entities[s]["screenwriter"].append(entity2label.get(o, str(o)))
+                elif p == rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P577"):
+                    relevant_entities[s]["publication_date"] = str(o)
+                elif p == rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P136"):
+                    relevant_entities[s]["genre"].append(entity2label.get(o, str(o)))
+                elif p == rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P166"):
+                    relevant_entities[s]["award_received"].append(entity2label.get(o, str(o)))
+
+        # Save to CSV
+        src_dir = os.path.dirname(__file__)
+        base_dir = os.path.dirname(src_dir)
+        csv_path = os.path.join(base_dir, "data", "movies_with_properties.csv")
+        with open(csv_path, mode="w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            for entity, properties in relevant_entities.items():
+                row = [
+                    entity2label.get(entity, ""),
+                    entity,
+                    "|".join(properties["instance_of"]),
+                    "|".join(properties["director"]),
+                    "|".join(properties["screenwriter"]),
+                    "|".join(properties["genre"]),
+                    "|".join(properties["award_received"]),
+                    properties["publication_date"],
+                ]
+                writer.writerow(row)
+
     def get_entity_type(self, uri: str):
         query = f"""
             SELECT ?type WHERE {{
@@ -82,6 +173,33 @@ class GraphDB:
         except:
             return "Unknown"
 
+    def get_movie_properties(self, uri: str):
+        def get_property(property_uri: str):
+            query = f"""
+                SELECT (COALESCE(?objLabel, STR(?obj)) AS ?result) WHERE {{
+                    <{uri}> <{property_uri}> ?obj .
+                    OPTIONAL {{
+                        ?obj rdfs:label ?objLabel .
+                    }}
+                }}
+            """
+            answer = self.execute_query(query)
+            if answer.strip() == "":
+                return []
+            return [line.strip() for line in answer.strip().split("\n")]
+
+        properties = {
+            "instance_of": "http://www.wikidata.org/prop/direct/P31",
+            "publication_date": "http://www.wikidata.org/prop/direct/P577",
+            "genre": "http://www.wikidata.org/prop/direct/P136",
+        }
+
+        result = {}
+
+        for property_name, property_uri in properties.items():
+            result[property_name] = get_property(property_uri)
+
+        return result
 
 
 
@@ -89,3 +207,4 @@ class GraphDB:
 if __name__ == "__main__":
     graph_db = GraphDB()
     graph_db.extract_entities()
+    graph_db.extract_movies()

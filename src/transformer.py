@@ -47,9 +47,9 @@ class Transformer:
         movies = match.group(1) if match else entities_search_query
         
         for part in movies.split(","):
-            entities.append(self.vector_store.find_similar_entity(part))
+            entities.append(self.vector_store.find_movie_with_label(part))
 
-        print(entities)
+        entities = [entity[0]['metadata']['entity'] for entity in entities if entity]
         return entities
 
 
