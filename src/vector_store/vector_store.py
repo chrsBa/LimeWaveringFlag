@@ -329,6 +329,6 @@ class VectorStore:
 
 if __name__ == "__main__":
     vector_store = VectorStore()
-    # vector_store.fill_movie_labels_vector_store()
-    # vector_store.fill_movie_properties_vector_store()
+    vector_store.fill_movie_labels_vector_store()
+    vector_store.fill_movie_properties_vector_store()
     vector_store.fill_relations_vector_store()
