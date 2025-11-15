@@ -105,6 +105,9 @@ class GraphDB:
             rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P577"),  # release date
             rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P136"),  # genre
             rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P166"),  # award received
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P921"),  # main subject
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/495"),  # country of origin
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P272"),  # production company
         ]
         relevant_entities = {}
         entity2label = {}
@@ -122,6 +125,9 @@ class GraphDB:
                         "publication_date": None,
                         "genre": [],
                         "award_received": [],
+                        "main_subject": [],
+                        "country_of_origin": [],
+                        "production_company": [],
                     }
                 else:
                     relevant_entities[s]["instance_of"].append(entity2label.get(o, str(o)))
@@ -140,6 +146,12 @@ class GraphDB:
                     relevant_entities[s]["genre"].append(entity2label.get(o, str(o)))
                 elif p == rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P166"):
                     relevant_entities[s]["award_received"].append(entity2label.get(o, str(o)))
+                elif p == rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P921"):
+                    relevant_entities[s]["main_subject"].append(entity2label.get(o, str(o)))
+                elif p == rdflib.term.URIRef("http://www.wikidata.org/prop/direct/495"):
+                    relevant_entities[s]["country_of_origin"].append(entity2label.get(o, str(o)))
+                elif p == rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P272"):
+                    relevant_entities[s]["production_company"].append(entity2label.get(o, str(o)))
 
         # Save to CSV
         src_dir = os.path.dirname(__file__)
@@ -156,6 +168,9 @@ class GraphDB:
                     "|".join(properties["screenwriter"]),
                     "|".join(properties["genre"]),
                     "|".join(properties["award_received"]),
+                    "|".join(properties["main_subject"]),
+                    "|".join(properties["country_of_origin"]),
+                    "|".join(properties["production_company"]),
                     properties["publication_date"],
                 ]
                 writer.writerow(row)
@@ -192,6 +207,10 @@ class GraphDB:
             "instance_of": "http://www.wikidata.org/prop/direct/P31",
             "publication_date": "http://www.wikidata.org/prop/direct/P577",
             "genre": "http://www.wikidata.org/prop/direct/P136",
+            "award_received": "http://www.wikidata.org/prop/direct/P166",
+            "main_subject": "http://www.wikidata.org/prop/direct/P921",
+            "country_of_origin": "http://www.wikidata.org/prop/direct/495",
+            "production_company": "http://www.wikidata.org/prop/direct/P272",
         }
 
         result = {}
@@ -206,5 +225,5 @@ class GraphDB:
 
 if __name__ == "__main__":
     graph_db = GraphDB()
-    graph_db.extract_entities()
+    # graph_db.extract_entities()
     graph_db.extract_movies()

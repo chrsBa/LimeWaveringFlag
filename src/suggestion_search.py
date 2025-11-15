@@ -8,67 +8,44 @@ class SuggestionSearch:
     def __init__(self, vector_store, graph_db):
         self.graph_db = graph_db
         self.vector_store = vector_store
-        self.relevant_properties = ["instance_of","director","screenwriter","genre","award_received"]
+        self.relevant_properties = ["instance_of",
+                                    "genre",
+                                    "award_received",
+                                    "main_subject",
+                                    "country_of_origin",
+                                    "production_company"]
 
 
 
     def _average_publication_date_str(self, entity_properties: dict, entity_uris: list[str]) -> str | None:
-        """Parse publication_date for each entity and return an averaged date as a string.
-
-        Rules:
-        - Accept ISO dates like '1965-01-01' using '%Y-%m-%d'.
-        - Fallback to date.fromisoformat.
-        - Fallback to year-only strings like '1965' (convert to Jan 1).
-        - Skip None/empty/invalid values.
-        - If no valid dates found, return None.
-        - If any input had a full date (year-month-day), return the average formatted as 'YYYY-MM-DD'.
-          Otherwise return just the year 'YYYY'.
-        """
         publication_dates = []
-        full_date_present = False
         for uri in entity_uris:
-            pub_str = entity_properties[uri].get("publication_date")
-            if not pub_str:
-                continue
             try:
-                # Prefer explicit full-date parsing
-                parsed = datetime.datetime.strptime(pub_str, "%Y-%m-%d").date()
-                full_date_present = True
+                pub_str = entity_properties[uri].get("publication_date")[0]
+                if not pub_str:
+                    continue
+                parsed = int(pub_str.split('-')[0])
+                publication_dates.append(parsed)
             except Exception:
-                try:
-                    parsed = datetime.date.fromisoformat(pub_str)
-                    # If the original string contains a '-', treat it as a full date format
-                    if '-' in pub_str:
-                        full_date_present = True
-                except Exception:
-                    try:
-                        year = int(pub_str)
-                        parsed = datetime.date(year, 1, 1)
-                    except Exception:
-                        continue
-            publication_dates.append(parsed)
+                continue
 
         if not publication_dates:
             return None
 
-        average_publication_date = np.mean([d.toordinal() for d in publication_dates])
-        avg_date = datetime.date.fromordinal(int(round(average_publication_date)))
-
-        if full_date_present:
-            return avg_date.strftime("%Y-%m-%d")
-        return str(avg_date.year)
+        average_publication_year = int(np.mean(publication_dates))
+        return str(average_publication_year)
 
     @staticmethod
     def _within_years(entity_properties: dict, year_range: int) -> bool:
         publication_years = []
         for uri in entity_properties.keys():
-            pub_str = entity_properties[uri].get("publication_date")
-            if pub_str:
-                try:
-                    year = datetime.datetime.strptime(pub_str, "%Y-%m-%d").date().year
-                    publication_years.append(year)
-                except Exception:
-                    continue
+            try:
+                pub_str = entity_properties[uri].get("publication_date")[0]
+                if pub_str:
+                        year = int(pub_str.split('-')[0])
+                        publication_years.append(year)
+            except Exception:
+                continue
         return publication_years and (max(publication_years) - min(publication_years) <= year_range)
 
     def _get_relevant_property_values(self, entity_properties: dict, entity_uris: list[str], property_name: str) -> list[str]:
@@ -94,13 +71,15 @@ class SuggestionSearch:
             key=lambda x: prop_frequency[x],
             reverse=True
         )
-        if len(most_common_vals) > 5:
-            most_common_vals = most_common_vals[:5]
+        if len(most_common_vals) > 3:
+            most_common_vals = most_common_vals[:3]
 
         return most_common_vals
 
 
-    def find_suggestions(self, entity_uris: list[str]) -> list[str]:
+    def find_suggestions(self, extracted_entities_map: dict[str, str]) -> list[str]:
+        entity_uris = list(extracted_entities_map.values())
+        entity_labels = list(extracted_entities_map.keys())
         try:
             # find movies similar to the given entities
             entity_properties = {
@@ -122,8 +101,8 @@ class SuggestionSearch:
                     most_common_properties.append(avg_date_str)
 
             movie_properties_str = ', '.join(most_common_properties)
-            similar_movies = self.vector_store.find_similar_movies(movie_properties_str)
-            return [movie['metadata']['label'] for movie in similar_movies]
+            similar_movies = self.vector_store.find_similar_movies(movie_properties_str, entity_labels)
+            return [f"{movie['metadata']['label']}({movie['metadata']['entity']})" for movie in similar_movies]
         
         except Exception as e:
             print("Error in suggestion search: ", e)

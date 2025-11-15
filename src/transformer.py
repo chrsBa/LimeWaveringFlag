@@ -39,17 +39,20 @@ class Transformer:
 
         return pred, node
     
-    def extract_multiple_entities(self, text_query: str) -> list[str]:
+    def extract_multiple_entities(self, text_query: str) -> dict[str, str]:
         entities_search_query = self.clean_text_query(text_query)
         entities = []
         match = re.search(r"(?:like|such as|including|for example)\s+(.*?)(?:\bcan you\b|\bgive\b|\brecommend\b|[?.!]|$)", entities_search_query, re.IGNORECASE)
 
         movies = match.group(1) if match else entities_search_query
+        parts = movies.split(",")
+        if len(parts) == 1:
+            parts = movies.split(" and ")
         
-        for part in movies.split(","):
+        for part in parts:
             entities.append(self.vector_store.find_movie_with_label(part))
 
-        entities = [entity[0]['metadata']['entity'] for entity in entities if entity]
+        entities = {entity[0]['metadata']['label']: entity[0]['metadata']['entity'] for entity in entities if entity}
         return entities
 
 

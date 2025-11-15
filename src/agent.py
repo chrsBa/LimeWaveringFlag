@@ -38,7 +38,8 @@ class Agent:
 
             if re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggestions?\b", message, re.IGNORECASE):
                 suggestion_response_needed = True
-                extracted_entities_list = self.transformer.extract_multiple_entities(message)
+                extracted_entities_map = self.transformer.extract_multiple_entities(message)
+                print("extracted suggestion entities " + str(extracted_entities_map.keys()))
             else:
                 extracted_relation, extracted_entity = self.transformer.extract_text_entities(message)
                 print("extracted entity " + extracted_entity)
@@ -70,7 +71,7 @@ class Agent:
             print("embedding response: " + embedding_response)
             room.post_messages(embedding_response)
         if suggestion_response_needed:
-            suggestion_response = self.message_handler.handle_suggestion_question(message, extracted_entities_list)
+            suggestion_response = self.message_handler.handle_suggestion_question(message, extracted_entities_map)
             print("suggestion response: " + suggestion_response)
             room.post_messages(suggestion_response)
 

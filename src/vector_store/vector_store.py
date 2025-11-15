@@ -108,9 +108,10 @@ class VectorStore:
         return (self.movie_labels_table.search(query=label)
                 .limit(1).to_list())
 
-    def find_similar_movies(self, movie_properties: str, k=5) -> List[dict]:
+    def find_similar_movies(self, movie_properties: str, exclude_labels: list[str], k=5) -> List[dict]:
         return (self.movie_properties_table.search(query=movie_properties)
-                .limit(k).to_list())
+                .where(f"metadata.label NOT IN {str(exclude_labels).replace('[', '(').replace(']', ')')}")
+                .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
     def fill_entity_vector_store(self):
         batcher = BatchInserter(self.entities_table)
@@ -144,7 +145,8 @@ class VectorStore:
                 # Create a string for each movie with its properties
                 movies[row[1]] = {
                     "label": row[0],
-                    "properties": ', '.join([str(row[2]), str(row[3]), str(row[4]), str(row[5]), str(row[6]), str(row[7])])
+                    "properties": ', '.join([str(row[2]), str(row[3]), str(row[4]), str(row[5]), str(row[6]),
+                                             str(row[7]), str(row[8]), str(row[9]), str(row[10])])
                 }
 
 
@@ -286,4 +288,4 @@ if __name__ == "__main__":
     vector_store = VectorStore()
     vector_store.fill_movie_labels_vector_store()
     vector_store.fill_movie_properties_vector_store()
-    vector_store.fill_entity_vector_store()
+    # vector_store.fill_entity_vector_store()
