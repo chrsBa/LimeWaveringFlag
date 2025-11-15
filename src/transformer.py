@@ -21,17 +21,16 @@ class Transformer:
                 }}
                 """
 
-
     def extract_text_entities(self, text_query: str) ->tuple[str, str]:
         relation_search_query, entity_search_query = self.extract_named_entities(text_query)
         if entity_search_query is None:
             entity_search_query = text_query
         if relation_search_query is None:
             relation_search_query = text_query
-
+ 
         entity_search_query = self.clean_text_query(entity_search_query)
 
-        node_result = self.vector_store.find_similar_entity(entity_search_query, 3)
+        node_result = self.vector_store.find_movie_with_label(entity_search_query)
         print(entity_search_query, node_result[0]['metadata'])
         node = node_result[0]['metadata']['entity']
         pred_result = self.vector_store.find_similar_relation(relation_search_query, 3)
@@ -39,6 +38,23 @@ class Transformer:
         pred = pred_result[0]['metadata']['entity']
 
         return pred, node
+    
+    def extract_multiple_entities(self, text_query: str) -> dict[str, str]:
+        entities_search_query = self.clean_text_query(text_query)
+        entities = []
+        match = re.search(r"(?:like|such as|including|for example)\s+(.*?)(?:\bcan you\b|\bgive\b|\brecommend\b|[?.!]|$)", entities_search_query, re.IGNORECASE)
+
+        movies = match.group(1) if match else entities_search_query
+        parts = movies.split(",")
+        if len(parts) == 1:
+            parts = movies.split(" and ")
+        
+        for part in parts:
+            entities.append(self.vector_store.find_movie_with_label(part))
+
+        entities = {entity[0]['metadata']['label']: entity[0]['metadata']['entity'] for entity in entities if entity}
+        return entities
+
 
     @staticmethod
     def clean_text_query(text_query: str) -> str:

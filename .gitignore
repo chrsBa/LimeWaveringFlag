@@ -213,6 +213,7 @@ cred.py
 graph.nt
 entity_embeds.npy
 relation_embeds.npy
+movies_with_properties.csv
 entities.csv
 entity_ids.del
 relation_ids.del
