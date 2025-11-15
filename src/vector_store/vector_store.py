@@ -12,8 +12,8 @@ from lancedb.rerankers import CrossEncoderReranker
 from langchain_core.documents import Document
 from tqdm import tqdm
 
-from .batch_inserter import BatchInserter
-from .table_schema import TableSchema
+from batch_inserter import BatchInserter
+from table_schema import TableSchema
 
 
 class VectorStore:
@@ -23,10 +23,12 @@ class VectorStore:
         self.entities_table_name = 'entities'
         self.movies_properties_table_name = 'movies_properties'
         self.movies_labels_table_name = 'movie_labels'
+        self.movie_relations_table_name = 'relations'
         self.vector_db = lancedb.connect(self.vector_db_path)
         self.entities_table = self._instantiate_table(self.entities_table_name)
         self.movie_properties_table = self._instantiate_table(self.movies_properties_table_name)
         self.movie_labels_table = self._instantiate_table(self.movies_labels_table_name)
+        self.relations_table = self._instantiate_table(self.movie_relations_table_name)
 
         self.logger = logging.getLogger(__name__)
 
@@ -92,16 +94,16 @@ class VectorStore:
         self.entity2description = {}
         self._load_entity_label_mapping()
 
-    def find_similar_entity(self, estimated_label: str, k=1) -> List[dict]:
-        print("entity estimate: " + estimated_label)
-        return (self.entities_table.search(query=estimated_label)
-                .where("metadata.type = 'entity' AND (LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%')")
-                .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
+    # def find_similar_entity(self, estimated_label: str, k=1) -> List[dict]:
+    #     print("entity estimate: " + estimated_label)
+    #     return (self.entities_table.search(query=estimated_label)
+    #             .where("metadata.type = 'entity' AND (LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%')")
+    #             .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
     def find_similar_relation(self, estimated_label: str, k=1) -> List[dict]:
         print("relation estimate: " + estimated_label)
-        return (self.entities_table.search(query=estimated_label)
-                .where(f"metadata.type = 'relation' AND (LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%')")
+        return (self.relations_table.search(query=estimated_label)
+                .where(f"(LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%')")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
     def find_movie_with_label(self, label: str) -> List[dict]:
@@ -122,6 +124,24 @@ class VectorStore:
                 for label, entity in self.label2entity.items()
             }
             for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Entities"):
+                label = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    self.logger.error(f"Error while processing entity {label}: {e}")
+
+        batcher.finish()
+        self.logger.debug("Vectorization complete.")
+
+    def fill_relations_vector_store(self):
+        batcher = BatchInserter(self.relations_table)
+        batcher.start()
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            futures = {
+                executor.submit(self._process_relation, label, entity, batcher): label
+                for label, entity in self.label2entity.items()
+            }
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Relations"):
                 label = futures[future]
                 try:
                     future.result()
@@ -155,7 +175,7 @@ class VectorStore:
                 executor.submit(self._process_movie_properties, entity, data["properties"], data["label"], batcher): entity
                 for entity, data in movies.items()
             }
-            for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Entities"):
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Movie Properties"):
                 entity = futures[future]
                 try:
                     future.result()
@@ -184,7 +204,7 @@ class VectorStore:
                 executor.submit(self._process_movie_labels, entity, label, batcher): entity
                 for entity, label in movies.items()
             }
-            for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Movies"):
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Movie Labels"):
                 entity = futures[future]
                 try:
                     future.result()
@@ -217,6 +237,29 @@ class VectorStore:
                     "label": entity_label,
                     "description": description,
                     "type": entity_type,
+                    }
+                )
+            batcher.add_document(document)
+        except Exception as e:
+            self.logger.error(f"Error processing entity {entity_label}: {e}")
+
+    def _process_relation(self, entity_label: str, entity_uri: str, batcher: BatchInserter):
+        try:
+            entity_code = entity_uri.split('/')[-1]
+
+            if not entity_code.startswith('P'):
+                return
+
+            description = self.entity2description.get(entity_uri, "")
+
+            document = Document(
+                id=uuid.uuid4().hex,
+                page_content=f"{entity_label}: {description}",
+                metadata={
+                    "entity": entity_uri,
+                    "label": entity_label,
+                    "description": description,
+                    "type": "relation",
                     }
                 )
             batcher.add_document(document)
@@ -286,6 +329,6 @@ class VectorStore:
 
 if __name__ == "__main__":
     vector_store = VectorStore()
-    vector_store.fill_movie_labels_vector_store()
-    vector_store.fill_movie_properties_vector_store()
-    # vector_store.fill_entity_vector_store()
+    # vector_store.fill_movie_labels_vector_store()
+    # vector_store.fill_movie_properties_vector_store()
+    vector_store.fill_relations_vector_store()

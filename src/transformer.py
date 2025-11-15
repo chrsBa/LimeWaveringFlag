@@ -30,7 +30,7 @@ class Transformer:
  
         entity_search_query = self.clean_text_query(entity_search_query)
 
-        node_result = self.vector_store.find_similar_entity(entity_search_query, 3)
+        node_result = self.vector_store.find_movie_with_label(entity_search_query)
         print(entity_search_query, node_result[0]['metadata'])
         node = node_result[0]['metadata']['entity']
         pred_result = self.vector_store.find_similar_relation(relation_search_query, 3)

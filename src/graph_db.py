@@ -225,5 +225,5 @@ class GraphDB:
 
 if __name__ == "__main__":
     graph_db = GraphDB()
-    # graph_db.extract_entities()
+    graph_db.extract_entities()
     graph_db.extract_movies()
