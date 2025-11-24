@@ -27,7 +27,7 @@ class GraphDB:
         self.graph.parse(graph_path, format="nt")
         print('Successfully loaded Graph.')
 
-    def execute_query(self, query: str) -> str:
+    def execute_query(self, query: str, separator=" and ") -> str:
         """
         Process the sparql queries
 
@@ -46,9 +46,9 @@ class GraphDB:
                 for index, item in enumerate(row):
                     answer += str(item)
                     if index < len(row) - 1:
-                        answer += " and "
+                        answer += separator
             else:
-                answer += str(row[0]) + "\n"
+                answer += str(row[0]) + separator
 
         return answer
 
@@ -168,7 +168,7 @@ class GraphDB:
                     }}
                 }}
             """
-            answer = self.execute_query(query)
+            answer = self.execute_query(query, separator="\n")
             if answer.strip() == "":
                 return []
             return [line.strip() for line in answer.strip().split("\n")]
