@@ -44,36 +44,39 @@ class Agent:
                 extracted_relation, extracted_entity = self.transformer.extract_text_entities(message)
                 print("extracted entity " + extracted_entity)
                 print("extracted relation " + extracted_relation)
-                message_parts = message.split(":")
-                if len(message_parts) > 1 and len(message_parts[0].split("Please answer this question")) > 1:
-                    text_query = message_parts[1]
-                    factual_answer_needed = message.split(":")[0].split("Please answer this question")[
-                                                1] == " with a factual approach"
-                    embedding_answer_needed = message.split(":")[0].split("Please answer this question")[
-                                                  1] == " with an embedding approach"
-                else:
-                    factual_answer_needed = True
-                    embedding_answer_needed = True
-                    text_query = message
+                message_parts = [message_part for message_part in message.split(":") if message_part.strip() != ""]
+                if len(message_parts) > 1:
+                    answer_definition = [message_part for message_part in
+                                                  message_parts[0].split("Please answer this question")
+                                                  if message_part.strip() != ""]
+                    if len(answer_definition) > 0:
+                        text_query = message_parts[1]
+                        factual_answer_needed = answer_definition[0] == " with a factual approach"
+                        embedding_answer_needed = answer_definition[0] == " with an embedding approach"
+
+            if not factual_answer_needed and not embedding_answer_needed and not suggestion_response_needed:
+                factual_answer_needed = True
+                embedding_answer_needed = True
+                text_query = message
+
+
+            if factual_answer_needed:
+                factual_response = self.message_handler.handle_factual_question(text_query, extracted_entity, extracted_relation)
+                print("factual response: " + factual_response)
+                room.post_messages(factual_response)
+            if embedding_answer_needed:
+                embedding_response = self.message_handler.handle_embedding_question(text_query, extracted_entity, extracted_relation)
+                print("embedding response: " + embedding_response)
+                room.post_messages(embedding_response)
+            if suggestion_response_needed:
+                suggestion_response = self.message_handler.handle_suggestion_question(message, extracted_entities_map)
+                print("suggestion response: " + suggestion_response)
+                room.post_messages(suggestion_response)
 
         except Exception as e:
             print(e)
             room.post_messages("Sorry, I could not understand your question. Please try rephrasing it.")
             return
-
-
-        if factual_answer_needed:
-            factual_response = self.message_handler.handle_factual_question(text_query, extracted_entity, extracted_relation)
-            print("factual response: " + factual_response)
-            room.post_messages(factual_response)
-        if embedding_answer_needed:
-            embedding_response = self.message_handler.handle_embedding_question(text_query, extracted_entity, extracted_relation)
-            print("embedding response: " + embedding_response)
-            room.post_messages(embedding_response)
-        if suggestion_response_needed:
-            suggestion_response = self.message_handler.handle_suggestion_question(message, extracted_entities_map)
-            print("suggestion response: " + suggestion_response)
-            room.post_messages(suggestion_response)
 
     def on_new_reaction(self, reaction : str, message_ordinal : int, room : Chatroom):
         print(reaction)

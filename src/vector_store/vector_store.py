@@ -12,8 +12,8 @@ from lancedb.rerankers import CrossEncoderReranker
 from langchain_core.documents import Document
 from tqdm import tqdm
 
-from batch_inserter import BatchInserter
-from table_schema import TableSchema
+from .batch_inserter import BatchInserter
+from .table_schema import TableSchema
 
 
 class VectorStore:
@@ -42,7 +42,7 @@ class VectorStore:
                     "released",
                     "releases",
                     "release date",
-                    "release_date"
+                    "release_date",
                     "publication",
                     "launch",
                     "broadcast",
@@ -96,6 +96,12 @@ class VectorStore:
 
     def find_similar_relation(self, estimated_label: str, k=1) -> List[dict]:
         print("relation estimate: " + estimated_label)
+        # Search lanceDb for exact match first
+        exact_matches = (self.relations_table.search(query=estimated_label)
+                         .where(f"(LOWER(metadata.label) IN ('{estimated_label.lower()}'))")
+                         .limit(1).to_list())
+        if exact_matches:
+            return exact_matches
         return (self.relations_table.search(query=estimated_label)
                 .where(f"(LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%')")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
@@ -116,6 +122,7 @@ class VectorStore:
             futures = {
                 executor.submit(self._process_relation, label, entity, batcher): label
                 for label, entity in self.label2entity.items()
+                if entity.split('/')[-1].startswith('P')
             }
             for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Relations"):
                 label = futures[future]
@@ -142,7 +149,7 @@ class VectorStore:
                 movies[row[1]] = {
                     "label": row[0],
                     "properties": ', '.join([str(row[2]), str(row[3]), str(row[4]), str(row[5]), str(row[6]),
-                                             str(row[7]), str(row[8]), str(row[9]), str(row[10])])
+                                             str(row[7]), str(row[8])])
                 }
 
 
@@ -192,11 +199,6 @@ class VectorStore:
 
     def _process_relation(self, entity_label: str, entity_uri: str, batcher: BatchInserter):
         try:
-            entity_code = entity_uri.split('/')[-1]
-
-            if not entity_code.startswith('P'):
-                return
-
             description = self.entity2description.get(entity_uri, "")
 
             document = Document(

@@ -29,6 +29,7 @@ class Transformer:
             relation_search_query = text_query
  
         entity_search_query = self.clean_text_query(entity_search_query)
+        relation_search_query = self.clean_text_query(relation_search_query)
 
         node_result = self.vector_store.find_movie_with_label(entity_search_query)
         print(entity_search_query, node_result[0]['metadata'])
@@ -53,6 +54,7 @@ class Transformer:
             entities.append(self.vector_store.find_movie_with_label(part))
 
         entities = {entity[0]['metadata']['label']: entity[0]['metadata']['entity'] for entity in entities if entity}
+        print("extracted entities for suggestion: " + str(entities))
         return entities
 
 
@@ -77,7 +79,7 @@ class Transformer:
         print(f"Extracting named entities from question: {question}")
         factual_question_patterns = [
             {
-                "pattern": r"when (?:was|did)?\s+['\"]?(.*?)['\"]?(?:\s+.*)?$",
+                "pattern": r"when\s(?:was|did)?\s+['\"]?(.*)['\"]?(?:\s+.*)?$",
                 "entity_group_index": 1,
                 "relation_group_index": None,
                 "default_relation": "release_date",
@@ -142,6 +144,41 @@ class Transformer:
                 "entity_group_index": 2,
                 "relation_group_index": 1,
             },
+            {
+                "pattern": "from which (.*?) is (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "what (.*?) is (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "what is the (.*?) of (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "who is the (.*?) of (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "who was the (.*?) of (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "who was the (.*?) for (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            },
+            {
+                "pattern": "who was the (.*?) in (.*)",
+                "entity_group_index": 2,
+                "relation_group_index": 1,
+            }
         ]
 
         for pattern in factual_question_patterns:

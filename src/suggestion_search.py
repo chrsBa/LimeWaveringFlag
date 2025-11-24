@@ -12,8 +12,9 @@ class SuggestionSearch:
                                     "genre",
                                     "award_received",
                                     "main_subject",
-                                    "country_of_origin",
-                                    "production_company"]
+                                    "production_company",
+                                    "after_a_work_by"
+                                    ]
 
 
 
@@ -88,6 +89,7 @@ class SuggestionSearch:
             }
 
             most_common_properties = []
+            print(entity_properties.items())
             for prop in self.relevant_properties:
                 most_common_vals = self._get_relevant_property_values(entity_properties, entity_uris, prop)
                 if most_common_vals:
@@ -101,8 +103,9 @@ class SuggestionSearch:
                     most_common_properties.append(avg_date_str)
 
             movie_properties_str = ', '.join(most_common_properties)
+            print("Suggestion search properties: " + movie_properties_str)
             similar_movies = self.vector_store.find_similar_movies(movie_properties_str, entity_labels)
-            return [f"{movie['metadata']['label']}({movie['metadata']['entity']})" for movie in similar_movies]
+            return [movie['metadata']['label'] for movie in similar_movies]
         
         except Exception as e:
             print("Error in suggestion search: ", e)
