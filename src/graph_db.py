@@ -20,7 +20,6 @@ class GraphDB:
             "genre": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P136"),
             "award_received": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P166"),
             "main_subject": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P921"),
-            "country_of_origin": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/495"),
             "production_company": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P272"),
             "after_a_work_by": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P1877"),
         }
@@ -83,6 +82,18 @@ class GraphDB:
     def extract_movies(self):
         relevant_types = [
             rdflib.term.URIRef('http://www.wikidata.org/entity/Q11424'), #'film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q17123180'), #'sequel film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q202866'), #'animated film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q622548'), #'parody film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q52207399'), #'film based on a novel'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q31235'), #'remake'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q2484376'), #'thriller film',
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q20650540'), #'anime film',
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q17517379'), #'animated short film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q1257444'), #'film adaptation'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q52162262'), #'film based on literature'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q118189123'), #'animated film reboot'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q506240'), #'television film'
         ]
 
         relevant_entities = {}
@@ -101,7 +112,6 @@ class GraphDB:
                         "genre": [],
                         "award_received": [],
                         "main_subject": [],
-                        "country_of_origin": [],
                         "production_company": [],
                         "after_a_work_by": [],
                     }

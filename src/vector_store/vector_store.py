@@ -149,7 +149,7 @@ class VectorStore:
                 movies[row[1]] = {
                     "label": row[0],
                     "properties": ', '.join([str(row[2]), str(row[3]), str(row[4]), str(row[5]), str(row[6]),
-                                             str(row[7]), str(row[8]), str(row[9])])
+                                             str(row[7]), str(row[8])])
                 }
 
 

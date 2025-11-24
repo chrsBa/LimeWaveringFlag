@@ -12,7 +12,6 @@ class SuggestionSearch:
                                     "genre",
                                     "award_received",
                                     "main_subject",
-                                    "country_of_origin",
                                     "production_company",
                                     "after_a_work_by"
                                     ]

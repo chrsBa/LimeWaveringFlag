@@ -79,7 +79,7 @@ class Transformer:
         print(f"Extracting named entities from question: {question}")
         factual_question_patterns = [
             {
-                "pattern": r"when\s(?:was|did)?\s+['\"]?(.*)['\"](?:\s+.*)?$",
+                "pattern": r"when\s(?:was|did)?\s+['\"]?(.*)['\"]?(?:\s+.*)?$",
                 "entity_group_index": 1,
                 "relation_group_index": None,
                 "default_relation": "release_date",
@@ -145,37 +145,37 @@ class Transformer:
                 "relation_group_index": 1,
             },
             {
-                "pattern": "from which (.*) is (.*)",
+                "pattern": "from which (.*?) is (.*)",
                 "entity_group_index": 2,
                 "relation_group_index": 1,
             },
             {
-                "pattern": "what (.*) is (.*)",
+                "pattern": "what (.*?) is (.*)",
                 "entity_group_index": 2,
                 "relation_group_index": 1,
             },
             {
-                "pattern": "what is the (.*) of (.*)",
+                "pattern": "what is the (.*?) of (.*)",
                 "entity_group_index": 2,
                 "relation_group_index": 1,
             },
             {
-                "pattern": "who is the (.*) of (.*)",
+                "pattern": "who is the (.*?) of (.*)",
                 "entity_group_index": 2,
                 "relation_group_index": 1,
             },
             {
-                "pattern": "who was the (.*) of (.*)",
+                "pattern": "who was the (.*?) of (.*)",
                 "entity_group_index": 2,
                 "relation_group_index": 1,
             },
             {
-                "pattern": "who was the (.*) for (.*)",
+                "pattern": "who was the (.*?) for (.*)",
                 "entity_group_index": 2,
                 "relation_group_index": 1,
             },
             {
-                "pattern": "who was the (.*) in (.*)",
+                "pattern": "who was the (.*?) in (.*)",
                 "entity_group_index": 2,
                 "relation_group_index": 1,
             }

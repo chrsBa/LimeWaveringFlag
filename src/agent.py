@@ -55,9 +55,9 @@ class Agent:
                         embedding_answer_needed = answer_definition[0] == " with an embedding approach"
 
             if not factual_answer_needed and not embedding_answer_needed and not suggestion_response_needed:
-               factual_answer_needed = True
-               embedding_answer_needed = True
-               text_query = message
+                factual_answer_needed = True
+                embedding_answer_needed = True
+                text_query = message
 
 
             if factual_answer_needed:
