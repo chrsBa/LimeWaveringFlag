@@ -214,9 +214,9 @@ class Transformer:
         Do NOT ask any follow up questions.
         Ensure the EXACT factual answer is included in your response and do not wrap it into stars or quotes."""
         response = self.transform_llm.invoke([{"role": "user", "content": prompt}]).content
-        response = response  + f"\n({source} Answer)"
-        if entity_type != "":
-            response = response + f"(type: {entity_type})"
+        # response = response  + f"\n({source} Answer)"
+        # if entity_type != "":
+        #     response = response + f"(type: {entity_type})"
         return response
 
 if __name__ == "__main__":

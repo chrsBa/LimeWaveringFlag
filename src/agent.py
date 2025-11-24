@@ -36,7 +36,7 @@ class Agent:
             factual_answer_needed = False
             embedding_answer_needed = False
 
-            if re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggestions?\b", message, re.IGNORECASE):
+            if re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggest\b|\bsuggestions?\b", message, re.IGNORECASE):
                 suggestion_response_needed = True
                 extracted_entities_map = self.transformer.extract_multiple_entities(message)
                 print("extracted suggestion entities " + str(extracted_entities_map.keys()))
@@ -44,19 +44,19 @@ class Agent:
                 extracted_relation, extracted_entity = self.transformer.extract_text_entities(message)
                 print("extracted entity " + extracted_entity)
                 print("extracted relation " + extracted_relation)
-                message_parts = [message_part for message_part in message.split(":") if message_part.strip() != ""]
-                if len(message_parts) > 1:
-                    answer_definition = [message_part for message_part in
-                                                  message_parts[0].split("Please answer this question")
-                                                  if message_part.strip() != ""]
-                    if len(answer_definition) > 0:
-                        text_query = message_parts[1]
-                        factual_answer_needed = answer_definition[0] == " with a factual approach"
-                        embedding_answer_needed = answer_definition[0] == " with an embedding approach"
+                # message_parts = [message_part for message_part in message.split(":") if message_part.strip() != ""]
+                # if len(message_parts) > 1:
+                #     answer_definition = [message_part for message_part in
+                #                                   message_parts[0].split("Please answer this question")
+                #                                   if message_part.strip() != ""]
+                #     if len(answer_definition) > 0:
+                #         text_query = message_parts[1]
+                #         factual_answer_needed = answer_definition[0] == " with a factual approach"
+                #         embedding_answer_needed = answer_definition[0] == " with an embedding approach"
 
-            if not factual_answer_needed and not embedding_answer_needed and not suggestion_response_needed:
+            # if not factual_answer_needed and not embedding_answer_needed and not suggestion_response_needed:
                 factual_answer_needed = True
-                embedding_answer_needed = True
+                # embedding_answer_needed = True
                 text_query = message
 
 
