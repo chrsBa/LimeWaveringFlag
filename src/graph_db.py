@@ -50,7 +50,7 @@ class GraphDB:
             else:
                 answer += str(row[0]) + separator
 
-        return answer
+        return answer.rstrip(separator)
 
     def extract_entities(self):
         # Extract entities and their labels from the graph

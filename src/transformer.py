@@ -8,7 +8,7 @@ from src.vector_store.vector_store import VectorStore
 
 class Transformer:
     def __init__(self, vector_store: VectorStore):
-        self.transform_llm = ChatOllama(model="gemma3:1b", temperature=0.5)
+        self.transform_llm = ChatOllama(model="gemma3:4b", temperature=0.4)
         self.vector_store = vector_store
 
 
@@ -204,18 +204,20 @@ class Transformer:
         return None, None
 
 
-    def transform_answer(self, question:str, factual_answer: str, source: str, type="") -> str:
+    def transform_answer(self, question:str, factual_answer: str, source: str, entity_type="") -> str:
         print(f"Transforming answer: {factual_answer}")
         prompt = f"""
         Given the question: "{question}" and the factual answer: "{factual_answer}", generate a concise and informative answer.
-        DO NOT ADD ANY ADDITIONAL INFORMATION THAT IS NOT PRESENT IN THE FACTUAL ANSWER. 
+        DO NOT ADD ANY ADDITIONAL INFORMATION. 
         ONLY TRANSFORM IT TO A NATURAL LANGUAGE ANSWER. 
         Use a helpful, engaging and conversational tone and ensure your answer sounds natural. 
         Do NOT ask any follow up questions.
-        Ensure the EXACT factual answer is included in your response and do not wrap it into stars or quotes.
-        Append '({source} Answer)'{ 'and (type: '+ type if type else ""})'"""
-        response = self.transform_llm.invoke([{"role": "user", "content": prompt}])
-        return response.content
+        Ensure the EXACT factual answer is included in your response and do not wrap it into stars or quotes."""
+        response = self.transform_llm.invoke([{"role": "user", "content": prompt}]).content
+        response = response  + f"\n({source} Answer)"
+        if entity_type != "":
+            response = response + f"(type: {entity_type})"
+        return response
 
 if __name__ == "__main__":
     query_transformer = Transformer(vector_store=VectorStore())
