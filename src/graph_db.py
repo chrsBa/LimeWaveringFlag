@@ -1,8 +1,9 @@
 import os
 import csv
 
+import re
 import rdflib
-from rdflib import Graph
+from rdflib import Graph, RDFS, URIRef
 from rdflib.plugins.sparql.processor import prepareQuery
 
 
@@ -26,6 +27,7 @@ class GraphDB:
         print('Loading Graph...')
         self.graph.parse(graph_path, format="nt")
         print('Successfully loaded Graph.')
+        self.lbl2ent = {str(lbl): ent for ent, lbl in self.graph.subject_objects(RDFS.label)}
 
     def execute_query(self, query: str, separator=" and ") -> str:
         """
@@ -177,6 +179,23 @@ class GraphDB:
 
         for property_name, property_uri in self.relevant_suggestion_properties.items():
             result[property_name] = get_property(property_uri)
+
+        return result
+    
+    def get_imdb_id(self, uri: str):
+        imdb_property = URIRef("http://www.wikidata.org/prop/direct/P345")  
+
+        title_pattern = re.compile(r"tt\d{7,}")
+        name_pattern = re.compile(r"nm\d{7,}")
+        entity = URIRef(uri)
+        result = {}
+
+        for _, _, o in self.graph.triples((entity, imdb_property, None)):
+            id = str(o)
+            if title_pattern.match(id):
+                result.setdefault("movies", []).append(id)
+            elif name_pattern.match(id):
+                result.setdefault("actors", []).append(id)
 
         return result
 

@@ -56,7 +56,34 @@ class Transformer:
         entities = {entity[0]['metadata']['label']: entity[0]['metadata']['entity'] for entity in entities if entity}
         print("extracted entities for suggestion: " + str(entities))
         return entities
+    
+    def extract_entity(self, text_query: str) -> str:
 
+        cleaned_query = self.clean_text_query(text_query)
+        
+        patterns = [
+            r"poster of (.*)",             
+            r"picture of (.*)",            
+            r"does (.*) look like",        
+            r"who is (.*)",                
+            r"show me what (.*)",               
+            r"what is (.*)"                
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, cleaned_query, re.IGNORECASE)
+            if match:
+                entity = match.group(1).strip()
+
+        if not entity:
+            entity = text_query
+            entity = self.vector_store.find_entity(entity)
+            print(entity, entity[0]['metadata'])
+            entity = entity[0]['metadata']['entity']
+        
+        print("entity for mm search: " + entity)
+
+        return entity
 
     @staticmethod
     def clean_text_query(text_query: str) -> str:

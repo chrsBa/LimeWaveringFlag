@@ -221,3 +221,4 @@ lancedb
 .data
 descriptions.csv
 .DS_Store
+/data

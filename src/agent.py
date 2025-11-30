@@ -4,8 +4,8 @@ from cred import USERNAME, PASSWORD
 from src.message_handler import MessageHandler
 import re
 
-from transformer import Transformer
-from vector_store.vector_store import VectorStore
+from .transformer import Transformer
+from .vector_store.vector_store import VectorStore
 
 DEFAULT_HOST_URL = 'https://speakeasy.ifi.uzh.ch'
 
@@ -35,8 +35,16 @@ class Agent:
             suggestion_response_needed = False
             factual_answer_needed = False
             embedding_answer_needed = False
+            multimedia_answer_needed = False
 
-            if re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggest\b|\bsuggestions?\b", message, re.IGNORECASE):
+            if re.search(r"\b(show|pictures?|photos?|posters?|images?|looks?)\b", message, re.IGNORECASE):
+                multimedia_answer_needed = True
+                extracted_m_entity = ""
+                extracted_m_entity = self.transformer.extract_entity(message)
+                extracted_m_entity = re.sub(r'[^\w\s]', '', extracted_m_entity)
+                print("extracted m entity: " + extracted_m_entity)
+
+            elif re.search(r"\b(recommend|similar|like|suggest|suggestions?)\b", message, re.IGNORECASE):
                 suggestion_response_needed = True
                 extracted_entities_map = self.transformer.extract_multiple_entities(message)
                 print("extracted suggestion entities " + str(extracted_entities_map.keys()))
@@ -72,6 +80,10 @@ class Agent:
                 suggestion_response = self.message_handler.handle_suggestion_question(message, extracted_entities_map)
                 print("suggestion response: " + suggestion_response)
                 room.post_messages(suggestion_response)
+            if multimedia_answer_needed:
+                multimedia_response = self.message_handler.handle_multimedia_question(message, extracted_m_entity)
+                print("multimedia response: " + multimedia_response) 
+                room.post_messages("image:" + multimedia_response)
 
         except Exception as e:
             print(e)

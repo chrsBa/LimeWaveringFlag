@@ -3,6 +3,7 @@ from .graph_db import GraphDB
 from .transformer import Transformer
 from .vector_store.vector_store import VectorStore
 from .suggestion_search import SuggestionSearch
+from .multimedia_search import MultimediaSearch
 
 
 class MessageHandler:
@@ -13,6 +14,7 @@ class MessageHandler:
         self.transformer = Transformer(self.vector_store)
         self.embedding_search = EmbeddingSearch(self.vector_store)
         self.suggestion_search = SuggestionSearch(self.vector_store, self.graphDB)
+        self.multimedia_search = MultimediaSearch(self.vector_store)
 
     def handle_factual_question(self, message: str, extracted_entity: str, extracted_relation: str) -> str:
         query_as_sparql = self.transformer.get_query_for_entity_relation(extracted_entity, extracted_relation)
@@ -25,11 +27,21 @@ class MessageHandler:
         embedding_response, response_type = self.embedding_search.nearest_neighbor(extracted_entity, extracted_relation)
         if embedding_response is None or embedding_response.strip() == "":
             return "I could not find an answer based on embeddings to your question. Please try rephrasing it or ask something else."
-        return self.transformer.transform_answer(message, embedding_response, 'Embeddings',
-                                                                         response_type)
+        return self.transformer.transform_answer(message, embedding_response, 'Embeddings', response_type)
 
     def handle_suggestion_question(self, message: str, extracted_entities_map: dict[str, str]) -> str:
         suggestion_response = self.suggestion_search.find_suggestions(extracted_entities_map)
         if len(suggestion_response) == 0:
             return "I could not find any suggestions based on your input. Please try rephrasing it or provide different entities."
         return self.transformer.transform_answer(message, ', '.join(suggestion_response), 'Suggestion')
+    
+
+    def handle_multimedia_question(self, message: str, extracted_entity: str) -> str:
+        entity_uri = self.graphDB.lbl2ent[extracted_entity]
+        imdb_dict = self.graphDB.get_imdb_id(entity_uri)
+        imdb_id = next(iter(imdb_dict.values()))[0]
+        multimedia_response = self.multimedia_search.find_picture(imdb_id)
+        if len(multimedia_response) == 0:
+            return "I could not find any pictures based on your input. Please try rephrasing it or provide different entities."
+        return multimedia_response
+        return self.transformer.transform_answer(message, multimedia_response, 'Multimedia')
