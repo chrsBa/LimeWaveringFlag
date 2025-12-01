@@ -57,31 +57,37 @@ class Transformer:
         print("extracted entities for suggestion: " + str(entities))
         return entities
     
-    def extract_entity(self, text_query: str) -> str:
-
-        cleaned_query = self.clean_text_query(text_query)
-        
+    def extract_multimedia_entity(self, text_query: str) -> str:
         patterns = [
             r"poster of (.*)",             
-            r"picture of (.*)",            
-            r"does (.*) look like",        
-            r"who is (.*)",                
-            r"show me what (.*)",               
-            r"what is (.*)"                
+            r"picture of (.*)",
+            r"image? of (.*)",
+            r"photo? of (.*)",
+            r"picture? of (.*)",
+            r"look like (.*)",
+            r"does (.*) look like",
+            r"who is (.*)",
+            r"show me what (.*)",
+            r"what is (.*)"
+            r"show me (.*)",
+            r"show (.*)"
+
         ]
-        
+
+        entity = None
         for pattern in patterns:
-            match = re.search(pattern, cleaned_query, re.IGNORECASE)
+            match = re.search(pattern, text_query, re.IGNORECASE)
             if match:
                 entity = match.group(1).strip()
+                break
 
         if not entity:
             entity = text_query
-            entity = self.vector_store.find_entity(entity)
-            print(entity, entity[0]['metadata'])
-            entity = entity[0]['metadata']['entity']
-        
-        print("entity for mm search: " + entity)
+
+        cleaned_entity = self.clean_text_query(entity)
+        entity = self.vector_store.find_similar_entity(cleaned_entity)
+        print(entity[0]['metadata'])
+        entity = entity[0]['metadata']['entity']
 
         return entity
 
@@ -98,6 +104,7 @@ class Transformer:
                 .replace("’", '')
                 .replace("“", '"')
                 .replace("”", '"')
+                .replace(".", '')
                 .strip())
 
 

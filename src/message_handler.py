@@ -9,16 +9,16 @@ from .multimedia_search import MultimediaSearch
 class MessageHandler:
 
     def __init__(self, vector_store: VectorStore):
-        self.graphDB = GraphDB()
+        self.graph_db = GraphDB()
         self.vector_store = vector_store
         self.transformer = Transformer(self.vector_store)
         self.embedding_search = EmbeddingSearch(self.vector_store)
-        self.suggestion_search = SuggestionSearch(self.vector_store, self.graphDB)
-        self.multimedia_search = MultimediaSearch(self.vector_store)
+        self.suggestion_search = SuggestionSearch(self.vector_store, self.graph_db)
+        self.multimedia_search = MultimediaSearch(self.graph_db)
 
     def handle_factual_question(self, message: str, extracted_entity: str, extracted_relation: str) -> str:
         query_as_sparql = self.transformer.get_query_for_entity_relation(extracted_entity, extracted_relation)
-        graph_response =  self.graphDB.execute_query(query_as_sparql)
+        graph_response =  self.graph_db.execute_query(query_as_sparql)
         if graph_response is None or graph_response.strip() == "":
             return "I could not find a factual answer to your question. Please try rephrasing it or ask something else."
         return self.transformer.transform_answer(message, graph_response, 'Factual')
@@ -36,12 +36,11 @@ class MessageHandler:
         return self.transformer.transform_answer(message, ', '.join(suggestion_response), 'Suggestion')
     
 
-    def handle_multimedia_question(self, message: str, extracted_entity: str) -> str:
-        entity_uri = self.graphDB.lbl2ent[extracted_entity]
-        imdb_dict = self.graphDB.get_imdb_id(entity_uri)
-        imdb_id = next(iter(imdb_dict.values()))[0]
-        multimedia_response = self.multimedia_search.find_picture(imdb_id)
-        if len(multimedia_response) == 0:
-            return "I could not find any pictures based on your input. Please try rephrasing it or provide different entities."
-        return multimedia_response
-        return self.transformer.transform_answer(message, multimedia_response, 'Multimedia')
+    def handle_multimedia_question(self, extracted_entity: str) -> str:
+        multimedia_response = self.multimedia_search.find_picture_for_entity(extracted_entity)
+        if multimedia_response is None:
+            return "I could not find any pictures based on your input. Please try rephrasing it or ask for another picture."
+
+        formatted_response = f'image:{multimedia_response.replace('.jpg', '')}'
+        print(f"multimedia response: {formatted_response}")
+        return formatted_response

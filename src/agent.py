@@ -4,8 +4,8 @@ from cred import USERNAME, PASSWORD
 from src.message_handler import MessageHandler
 import re
 
-from .transformer import Transformer
-from .vector_store.vector_store import VectorStore
+from transformer import Transformer
+from vector_store.vector_store import VectorStore
 
 DEFAULT_HOST_URL = 'https://speakeasy.ifi.uzh.ch'
 
@@ -39,10 +39,8 @@ class Agent:
 
             if re.search(r"\b(show|pictures?|photos?|posters?|images?|looks?)\b", message, re.IGNORECASE):
                 multimedia_answer_needed = True
-                extracted_m_entity = ""
-                extracted_m_entity = self.transformer.extract_entity(message)
-                extracted_m_entity = re.sub(r'[^\w\s]', '', extracted_m_entity)
-                print("extracted m entity: " + extracted_m_entity)
+                extracted_m_entity = self.transformer.extract_multimedia_entity(message)
+                print("extracted media entity: " + extracted_m_entity)
 
             elif re.search(r"\b(recommend|similar|like|suggest|suggestions?)\b", message, re.IGNORECASE):
                 suggestion_response_needed = True
@@ -52,19 +50,7 @@ class Agent:
                 extracted_relation, extracted_entity = self.transformer.extract_text_entities(message)
                 print("extracted entity " + extracted_entity)
                 print("extracted relation " + extracted_relation)
-                # message_parts = [message_part for message_part in message.split(":") if message_part.strip() != ""]
-                # if len(message_parts) > 1:
-                #     answer_definition = [message_part for message_part in
-                #                                   message_parts[0].split("Please answer this question")
-                #                                   if message_part.strip() != ""]
-                #     if len(answer_definition) > 0:
-                #         text_query = message_parts[1]
-                #         factual_answer_needed = answer_definition[0] == " with a factual approach"
-                #         embedding_answer_needed = answer_definition[0] == " with an embedding approach"
-
-            # if not factual_answer_needed and not embedding_answer_needed and not suggestion_response_needed:
                 factual_answer_needed = True
-                # embedding_answer_needed = True
                 text_query = message
 
 
@@ -81,9 +67,8 @@ class Agent:
                 print("suggestion response: " + suggestion_response)
                 room.post_messages(suggestion_response)
             if multimedia_answer_needed:
-                multimedia_response = self.message_handler.handle_multimedia_question(message, extracted_m_entity)
-                print("multimedia response: " + multimedia_response) 
-                room.post_messages("image:" + multimedia_response)
+                multimedia_response = self.message_handler.handle_multimedia_question(extracted_m_entity)
+                room.post_messages(multimedia_response)
 
         except Exception as e:
             print(e)
