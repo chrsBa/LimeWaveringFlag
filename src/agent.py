@@ -1,3 +1,5 @@
+import random
+
 from speakeasypy import Chatroom, EventType, Speakeasy
 
 from cred import USERNAME, PASSWORD
@@ -25,6 +27,32 @@ class Agent:
         self.message_handler = MessageHandler(self.vector_store)
         self.transformer = Transformer(self.vector_store)
         self.cached_responses = {}
+        self.searching_messages = [
+                "I'm looking into it...",
+                "Let me check that for you...",
+                "Let's have a look...",
+                "One moment, I'll check...",
+                "I'll find that for you...",
+                "Give me a moment, I'm checking...",
+                "Checking now...",
+                "I'll pull that up for you...",
+                "Hold on, I'm looking...",
+                "On it — fetching details...",
+                "Searching for the answer...",
+                "Let me see what I can find...",
+                "Just a sec, I'm checking...",
+                "I'll take a look right away...",
+                "Working on that now...",
+                "Hold tight, getting the info...",
+                "I'll look that up for you...",
+                "Give me a moment to fetch that...",
+                "I'm checking the details...",
+                "One sec, retrieving information...",
+                "Hang on, I'll find out...",
+                "I'll dig into that now...",
+                "Fetching the results now...",
+                "Looking that up for you..."
+            ]
 
     def listen(self):
         """Start listening for events."""
@@ -41,7 +69,7 @@ class Agent:
                 room.post_messages(self.cached_responses[message])
                 return
 
-            room.post_messages("Let's have a look...")
+            room.post_messages(random.choice(self.searching_messages))
             suggestion_response_needed = False
             factual_answer_needed = False
             embedding_answer_needed = False
