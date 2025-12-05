@@ -13,7 +13,8 @@ class SuggestionSearch:
                                     "award_received",
                                     "main_subject",
                                     "production_company",
-                                    "after_a_work_by"
+                                    "after_a_work_by",
+                                    "director"
                                     ]
 
 
@@ -49,26 +50,25 @@ class SuggestionSearch:
                 continue
         return publication_years and (max(publication_years) - min(publication_years) <= year_range)
 
-    def _get_relevant_property_values(self, entity_properties: dict, entity_uris: list[str], property_name: str) -> list[str]:
+    def _get_relevant_property_values(self, entity_properties: dict, property_name: str) -> list[str]:
         # write the property to the string that occurs most frequently among the entities
         prop_values = []
-        for uri in entity_uris:
+        for uri in entity_properties.keys():
             value = entity_properties[uri].get(property_name)
             if value:
                 prop_values.append(value)
 
         # Check if a value in the prop_values list occurs more than once in the entity_properties
         prop_frequency = {}
-        for item in prop_values:
-            for uri, props in entity_properties.items():
-                if props.get(property_name):
-                    for val in props.get(property_name):
-                        prop_frequency[val] = prop_frequency.get(val, 0) + 1
+        for uri, props in entity_properties.items():
+            if props.get(property_name):
+                for val in props.get(property_name):
+                    prop_frequency[val] = prop_frequency.get(val, 0) + 1
 
         # Find the most property values tha occur multiple times
         # If more than 5 values occur multiple times, take the top 5, but only those that occur more than once
         most_common_vals = sorted(
-            [val for val, freq in prop_frequency.items() if freq > 1],
+            [val for val, freq in prop_frequency.items() if (freq > 1 or len(entity_properties.keys()) == 1)],
             key=lambda x: prop_frequency[x],
             reverse=True
         )
@@ -87,17 +87,21 @@ class SuggestionSearch:
                 uri: self.graph_db.get_movie_properties(URIRef(uri))
                 for uri in entity_uris
             }
+            # remove trivial properties
+            for uri in entity_uris:
+                if 'instance_of' in entity_properties[uri] and 'film' in entity_properties[uri]['instance_of']:
+                    entity_properties[uri]['instance_of'].remove('film')
 
             most_common_properties = []
             print(entity_properties.items())
             for prop in self.relevant_properties:
-                most_common_vals = self._get_relevant_property_values(entity_properties, entity_uris, prop)
+                most_common_vals = self._get_relevant_property_values(entity_properties, prop)
                 if most_common_vals:
                         most_common_properties.append(', '.join(most_common_vals))
 
             # If all publication dates are within 10 years, take the average publication date
 
-            if self._within_years(entity_properties, 10):
+            if self._within_years(entity_properties, 10) and len(entity_properties.items()) > 1:
                 avg_date_str = self._average_publication_date_str(entity_properties, entity_uris)
                 if avg_date_str:
                     most_common_properties.append(avg_date_str)

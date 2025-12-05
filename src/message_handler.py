@@ -21,19 +21,19 @@ class MessageHandler:
         graph_response =  self.graph_db.execute_query(query_as_sparql)
         if graph_response is None or graph_response.strip() == "":
             return "I could not find a factual answer to your question. Please try rephrasing it or ask something else."
-        return self.transformer.transform_answer(message, graph_response, 'Factual')
+        return self.transformer.transform_answer(message, graph_response)
 
     def handle_embedding_question(self, message: str, extracted_entity: str, extracted_relation: str) -> str:
         embedding_response, response_type = self.embedding_search.nearest_neighbor(extracted_entity, extracted_relation)
         if embedding_response is None or embedding_response.strip() == "":
             return "I could not find an answer based on embeddings to your question. Please try rephrasing it or ask something else."
-        return self.transformer.transform_answer(message, embedding_response, 'Embeddings', response_type)
+        return self.transformer.transform_answer(message, embedding_response)
 
     def handle_suggestion_question(self, message: str, extracted_entities_map: dict[str, str]) -> str:
         suggestion_response = self.suggestion_search.find_suggestions(extracted_entities_map)
         if len(suggestion_response) == 0:
             return "I could not find any suggestions based on your input. Please try rephrasing it or provide different entities."
-        return self.transformer.transform_answer(message, ', '.join(suggestion_response), 'Suggestion')
+        return self.transformer.transform_answer(message, ', '.join(suggestion_response))
     
 
     def handle_multimedia_question(self, extracted_entity: str) -> str:

@@ -118,6 +118,11 @@ class VectorStore:
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
     def find_movie_with_label(self, label: str) -> List[dict]:
+        exact_matches = (self.movie_labels_table.search(query=label)
+                         .where(f"(LOWER(metadata.label) IN ('{label.lower()}'))")
+                         .limit(1).to_list())
+        if exact_matches:
+            return exact_matches
         return (self.movie_labels_table.search(query=label)
                 .limit(1).to_list())
 
