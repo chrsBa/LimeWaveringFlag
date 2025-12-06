@@ -91,7 +91,7 @@ class SuggestionSearch:
                 for val in props.get(property_name):
                     prop_frequency[val] = prop_frequency.get(val, 0) + 1
 
-        # Find the most property values tha occur multiple times
+        # Find property values that occur multiple times
         # If more than 5 values occur multiple times, take the top 5, but only those that occur more than once
         most_common_vals = sorted(
             [val for val, freq in prop_frequency.items() if (freq > 1 or len(entity_properties.keys()) == 1)],

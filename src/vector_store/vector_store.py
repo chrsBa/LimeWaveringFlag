@@ -126,7 +126,7 @@ class VectorStore:
         return (self.movie_labels_table.search(query=label)
                 .limit(1).to_list())
 
-    def find_similar_movies(self, movie_properties: str, exclude_labels: list[str],genre=None, k=5) -> List[dict]:
+    def find_similar_movies(self, movie_properties: str, exclude_labels: list[str], k=5) -> List[dict]:
         if len(exclude_labels) == 0:
             return  (self.movie_properties_table.search(query=movie_properties, query_type="fts")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())

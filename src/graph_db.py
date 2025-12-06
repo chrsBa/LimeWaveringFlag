@@ -236,11 +236,11 @@ class GraphDB:
         result = {}
 
         for _, _, o in self.graph.triples((entity, imdb_property, None)):
-            id = str(o)
-            if title_pattern.match(id):
-                result.setdefault("movies", []).append(id)
-            elif name_pattern.match(id):
-                result.setdefault("actors", []).append(id)
+            imdb_id = str(o)
+            if title_pattern.match(imdb_id):
+                result.setdefault("movies", []).append(imdb_id)
+            elif name_pattern.match(imdb_id):
+                result.setdefault("actors", []).append(imdb_id)
 
         return result
 

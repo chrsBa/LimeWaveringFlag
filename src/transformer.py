@@ -54,7 +54,6 @@ class Transformer:
         for part in parts:
             entities.append(self.vector_store.find_movie_with_label(part))
 
-        print("Distances: " + str([f"{entity[0]['_distance']} ({entity[0]['metadata']['label']})" for entity in entities]))
         entities = {entity[0]['metadata']['label']: entity[0]['metadata']['entity'] for entity in entities if entity and (entity[0]['_distance'] < 0.15 or not general_prop_in_query)}
         print("extracted entities for suggestion: " + str(entities))
         return entities
@@ -70,7 +69,7 @@ class Transformer:
             r"does (.*) look like",
             r"who is (.*)",
             r"show me what (.*)",
-            r"what is (.*)"
+            r"what is (.*)",
             r"show me (.*)",
             r"show (.*)"
 

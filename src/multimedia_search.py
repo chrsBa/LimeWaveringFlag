@@ -1,6 +1,4 @@
 import os
-
-import numpy as np
 import json
 
 class MultimediaSearch:
@@ -14,8 +12,10 @@ class MultimediaSearch:
     def find_picture_for_entity(self, extracted_entity):
         try:
             imdb_dict = self.graph_db.get_imdb_id(extracted_entity)
+            if imdb_dict is None:
+                return None
             imdb_values = next(iter(imdb_dict.values()))
-            if imdb_dict is None or len(imdb_values) == 0:
+            if len(imdb_values) == 0:
                 return None
             imdb_id = imdb_values[0]
             print("finding picture for: " + imdb_id)
