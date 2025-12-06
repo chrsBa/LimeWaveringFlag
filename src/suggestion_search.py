@@ -16,6 +16,20 @@ class SuggestionSearch:
                                     "after_a_work_by",
                                     "director"
                                     ]
+        # Load general properties from csv into a list
+        self.general_properties = []
+        self.load_general_properties()
+
+    def load_general_properties(self):
+        base_path = os.path.dirname(os.path.dirname(__file__))
+        general_properties_file = os.path.join(base_path, "data", "movie_general_property_keywords.csv")
+        try:
+            with open(general_properties_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    property_name = line.strip()
+                    self.general_properties.append(property_name)
+        except Exception as e:
+            print(f"Error loading general properties from {general_properties_file}: {e}")
 
 
 
@@ -78,7 +92,7 @@ class SuggestionSearch:
         return most_common_vals
 
 
-    def find_suggestions(self, extracted_entities_map: dict[str, str]) -> list[str]:
+    def find_suggestions(self, extracted_entities_map: dict[str, str], text_query) -> list[str]:
         entity_uris = list(extracted_entities_map.values())
         entity_labels = list(extracted_entities_map.keys())
         try:
@@ -107,6 +121,18 @@ class SuggestionSearch:
                     most_common_properties.append(avg_date_str)
 
             movie_properties_str = ', '.join(most_common_properties)
+            for gen_prop in self.general_properties:
+                if gen_prop.lower() in text_query.lower():
+                    prop_to_append = gen_prop.strip()
+                    if prop_to_append + ' film' in self.general_properties:
+                        prop_to_append += ' film'
+                    elif prop_to_append + " movies" in self.general_properties:
+                        prop_to_append += ' movies'
+
+                    if len(movie_properties_str) > 0:
+                        movie_properties_str += ', '
+                    movie_properties_str += prop_to_append
+
             print("Suggestion search properties: " + movie_properties_str)
             similar_movies = self.vector_store.find_similar_movies(movie_properties_str, entity_labels)
             return [movie['metadata']['label'] for movie in similar_movies]

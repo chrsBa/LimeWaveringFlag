@@ -82,7 +82,11 @@ class Agent:
 
             elif re.search(r"\b(recommend|similar|like|suggest|suggestions?)\b", message, re.IGNORECASE):
                 suggestion_response_needed = True
-                extracted_entities_map = self.transformer.extract_suggestion_entities(message)
+                general_prop_in_message = False
+                for gen_prop in self.message_handler.suggestion_search.general_properties:
+                    if gen_prop.lower() in message.lower():
+                        general_prop_in_message = True
+                extracted_entities_map = self.transformer.extract_suggestion_entities(message, general_prop_in_message)
                 print("extracted suggestion entities " + str(extracted_entities_map.keys()))
             else:
                 extracted_relation, extracted_entity = self.transformer.extract_movie_relation_entities(message)

@@ -147,6 +147,25 @@ class GraphDB:
                     row.append("; ".join(values))
                 writer.writerow(row)
 
+        relevant_general_properties = [
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P136"),
+        ]
+        relevant_general_property_keywords = []
+        for s, p, o in self.graph:
+            if s in relevant_entities and p in relevant_general_properties:
+                relevant_general_property_keywords.append(entity2label.get(o, str(o)))
+        relevant_general_property_keywords = set(relevant_general_property_keywords)
+
+        keywords_csv_path = os.path.join(base_dir, "data", "movie_general_property_keywords.csv")
+        with open(keywords_csv_path, mode="w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            for keyword in relevant_general_property_keywords:
+                writer.writerow([keyword])
+                if "film" in keyword.lower():
+                    writer.writerow([keyword.replace("film", "")])
+                if "movie" in keyword.lower():
+                    writer.writerow([keyword.replace("movie", "")])
+
     def get_entity_type(self, uri: str):
         query = f"""
             SELECT ?type WHERE {{

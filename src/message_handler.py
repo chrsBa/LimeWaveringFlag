@@ -30,7 +30,7 @@ class MessageHandler:
         return self.transformer.transform_answer(message, embedding_response)
 
     def handle_suggestion_question(self, message: str, extracted_entities_map: dict[str, str]) -> str:
-        suggestion_response = self.suggestion_search.find_suggestions(extracted_entities_map)
+        suggestion_response = self.suggestion_search.find_suggestions(extracted_entities_map, message)
         if len(suggestion_response) == 0:
             return "I could not find any suggestions based on your input. Please try rephrasing it or provide different entities."
         return self.transformer.transform_answer(message, ', '.join(suggestion_response))

@@ -126,8 +126,14 @@ class VectorStore:
         return (self.movie_labels_table.search(query=label)
                 .limit(1).to_list())
 
-    def find_similar_movies(self, movie_properties: str, exclude_labels: list[str], k=5) -> List[dict]:
-        return (self.movie_properties_table.search(query=movie_properties)
+    def find_similar_movies(self, movie_properties: str, exclude_labels: list[str],genre=None, k=5) -> List[dict]:
+        if len(exclude_labels) == 0:
+            return  (self.movie_properties_table.search(query=movie_properties, query_type="fts")
+                .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
+        return (self.movie_properties_table.search(query=movie_properties,
+                                                   query_type="hybrid",
+                                                   vector_column_name="vector",
+                                                   fts_columns="text",)
                 .where(f"metadata.label NOT IN {str(exclude_labels).replace('[', '(').replace(']', ')')}")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
@@ -201,6 +207,9 @@ class VectorStore:
                     self.logger.error(f"Error while processing entity {entity}: {e}")
 
         batcher.finish()
+        # Create FTS index on 'page_content' for movie_properties_table
+        self.movie_properties_table.create_fts_index("text")
+
         self.logger.debug("Vectorization complete.")
 
     def fill_movie_labels_vector_store(self):

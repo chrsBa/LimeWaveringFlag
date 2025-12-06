@@ -40,7 +40,7 @@ class Transformer:
 
         return pred, node
     
-    def extract_suggestion_entities(self, text_query: str) -> dict[str, str]:
+    def extract_suggestion_entities(self, text_query: str, general_prop_in_query) -> dict[str, str]:
         entities_search_query = self.remove_quotes(text_query)
         entities = []
         match = re.search(r"(?:like|such as|including|for example)\s+(.*?)(?:\bcan you\b|\bgive\b|\brecommend\b|[?.!]|$)", entities_search_query, re.IGNORECASE)
@@ -54,7 +54,8 @@ class Transformer:
         for part in parts:
             entities.append(self.vector_store.find_movie_with_label(part))
 
-        entities = {entity[0]['metadata']['label']: entity[0]['metadata']['entity'] for entity in entities if entity}
+        print("Distances: " + str([f"{entity[0]['_distance']} ({entity[0]['metadata']['label']})" for entity in entities]))
+        entities = {entity[0]['metadata']['label']: entity[0]['metadata']['entity'] for entity in entities if entity and (entity[0]['_distance'] < 0.15 or not general_prop_in_query)}
         print("extracted entities for suggestion: " + str(entities))
         return entities
     
