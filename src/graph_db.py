@@ -1,8 +1,9 @@
 import os
 import csv
 
+import re
 import rdflib
-from rdflib import Graph
+from rdflib import Graph, RDFS, URIRef
 from rdflib.plugins.sparql.processor import prepareQuery
 
 
@@ -22,10 +23,21 @@ class GraphDB:
             "main_subject": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P921"),
             "production_company": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P272"),
             "after_a_work_by": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P1877"),
+            "narrative_location": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P840"),
+            "fsk_rating": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P1981"),
+            "composer": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P86"),
+            "producer": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P162"),
+            "director_of_photography": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P344"),
+            "screenwriter": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P58"),
+            "film_editor": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P1040"),
+            "nominated_for": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P1411"),
+            "sound_designer": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P5028"),
+            "movement": rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P135"),
         }
         print('Loading Graph...')
         self.graph.parse(graph_path, format="nt")
         print('Successfully loaded Graph.')
+        self.lbl2ent = {str(lbl): ent for ent, lbl in self.graph.subject_objects(RDFS.label)}
 
     def execute_query(self, query: str, separator=" and ") -> str:
         """
@@ -81,19 +93,26 @@ class GraphDB:
 
     def extract_movies(self):
         relevant_types = [
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q11424'), #'film'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q17123180'), #'sequel film'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q202866'), #'animated film'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q622548'), #'parody film'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q52207399'), #'film based on a novel'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q31235'), #'remake'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q2484376'), #'thriller film',
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q20650540'), #'anime film',
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q17517379'), #'animated short film'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q1257444'), #'film adaptation'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q52162262'), #'film based on literature'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q118189123'), #'animated film reboot'
-            rdflib.term.URIRef('http://www.wikidata.org/entity/Q506240'), #'television film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q11424'),  # 'film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q17123180'),  # 'sequel film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q202866'),  # 'animated film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q622548'),  # 'parody film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q917641'),  # 'open-source film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q52207399'),  # 'film based on a novel'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q31235'),  # 'remake'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q24862'),  # 'short film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q104840802'),  # 'film remake'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q112158242'),  # 'Tom and Jerry film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q24856'),  # 'film series'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q2484376'),  # 'thriller film',
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q20650540'),  # 'anime film',
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q13593818'),  # 'film trilogy'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q17517379'),  # 'animated short film'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q678345'),  # 'prequel'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q1257444'),  # 'film adaptation'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q52162262'),  # 'film based on literature'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q118189123'),  # 'animated film reboot'
+            rdflib.term.URIRef('http://www.wikidata.org/entity/Q506240'),  # 'television film'
         ]
 
         relevant_entities = {}
@@ -114,6 +133,16 @@ class GraphDB:
                         "main_subject": [],
                         "production_company": [],
                         "after_a_work_by": [],
+                        "narrative_location": [],
+                        "fsk_rating": [],
+                        "composer": [],
+                        "producer": [],
+                        "director_of_photography": [],
+                        "screenwriter": [],
+                        "film_editor": [],
+                        "nominated_for": [],
+                        "sound_designer": [],
+                        "movement": [],
                     }
                 else:
                     relevant_entities[s]["instance_of"].append(entity2label.get(o, str(o)))
@@ -144,6 +173,24 @@ class GraphDB:
                         continue
                     row.append("; ".join(values))
                 writer.writerow(row)
+
+        relevant_general_properties = [
+            rdflib.term.URIRef("http://www.wikidata.org/prop/direct/P136"),
+        ]
+        relevant_general_property_keywords = []
+        for s, p, o in self.graph:
+            if s in relevant_entities and p in relevant_general_properties:
+                relevant_general_property_keywords.append(entity2label.get(o, str(o)))
+        relevant_general_property_keywords = set(relevant_general_property_keywords)
+
+        keywords_csv_path = os.path.join(base_dir, "data", "movie_general_property_keywords.csv")
+        with open(keywords_csv_path, mode="w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            for keyword in relevant_general_property_keywords:
+                cleaned_keyword = keyword.replace("film", "").replace("movie", "").strip()
+                if len(cleaned_keyword) > 1:
+                    writer.writerow([cleaned_keyword])
+                    writer.writerow([keyword])
 
     def get_entity_type(self, uri: str):
         query = f"""
@@ -177,6 +224,23 @@ class GraphDB:
 
         for property_name, property_uri in self.relevant_suggestion_properties.items():
             result[property_name] = get_property(property_uri)
+
+        return result
+    
+    def get_imdb_id(self, uri: str):
+        imdb_property = URIRef("http://www.wikidata.org/prop/direct/P345")  
+
+        title_pattern = re.compile(r"tt\d{7,}")
+        name_pattern = re.compile(r"nm\d{7,}")
+        entity = URIRef(uri)
+        result = {}
+
+        for _, _, o in self.graph.triples((entity, imdb_property, None)):
+            imdb_id = str(o)
+            if title_pattern.match(imdb_id):
+                result.setdefault("movies", []).append(imdb_id)
+            elif name_pattern.match(imdb_id):
+                result.setdefault("actors", []).append(imdb_id)
 
         return result
 

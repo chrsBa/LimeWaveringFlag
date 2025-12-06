@@ -1,3 +1,5 @@
+import random
+
 from speakeasypy import Chatroom, EventType, Speakeasy
 
 from cred import USERNAME, PASSWORD
@@ -19,59 +21,98 @@ class Agent:
 
         self.speakeasy.register_callback(self.on_new_message, EventType.MESSAGE)
         self.speakeasy.register_callback(self.on_new_reaction, EventType.REACTION)
+        self.speakeasy.register_callback(self.on_new_room, EventType.ROOMS)
 
         self.vector_store = VectorStore()
         self.message_handler = MessageHandler(self.vector_store)
         self.transformer = Transformer(self.vector_store)
+        self.cached_responses = {}
+        self.searching_messages = [
+                "I'm looking into it...",
+                "Let me check that for you...",
+                "Let's have a look...",
+                "One moment, I'll check...",
+                "I'll find that for you...",
+                "Give me a moment, I'm checking...",
+                "Checking now...",
+                "I'll pull that up for you...",
+                "Hold on, I'm looking...",
+                "On it — fetching details...",
+                "Searching for the answer...",
+                "Let me see what I can find...",
+                "Just a sec, I'm checking...",
+                "I'll take a look right away...",
+                "Working on that now...",
+                "Hold tight, getting the info...",
+                "I'll look that up for you...",
+                "Give me a moment to fetch that...",
+                "I'm checking the details...",
+                "One sec, retrieving information...",
+                "Hang on, I'll find out...",
+                "I'll dig into that now...",
+                "Fetching the results now...",
+                "Looking that up for you..."
+            ]
 
     def listen(self):
         """Start listening for events."""
         self.speakeasy.start_listening()
 
+    def on_new_room(self, room : Chatroom):
+        """Callback function to handle new rooms."""
+        room.post_messages("Hey!\n I'm your Movie Knowledge Bot🤖. Ask me anything about movies🎥!")
+
     def on_new_message(self, message : str, room : Chatroom):
         """Callback function to handle new messages."""
         try:
-            room.post_messages("Let's have a look...")
+            if message in self.cached_responses:
+                room.post_messages(self.cached_responses[message])
+                return
+
+            room.post_messages(random.choice(self.searching_messages))
             suggestion_response_needed = False
             factual_answer_needed = False
             embedding_answer_needed = False
+            multimedia_answer_needed = False
 
-            if re.search(r"\brecommend\b|\bsimilar\b|\blike\b|\bsuggest\b|\bsuggestions?\b", message, re.IGNORECASE):
+            if re.search(r"\b(show|pictures?|photos?|posters?|images?|looks?)\b", message, re.IGNORECASE):
+                multimedia_answer_needed = True
+                extracted_m_entity = self.transformer.extract_multimedia_entity(message)
+                print("extracted media entity: " + extracted_m_entity)
+
+            elif re.search(r"\b(recommend|similar|like|suggest|suggestions?)\b", message, re.IGNORECASE):
                 suggestion_response_needed = True
-                extracted_entities_map = self.transformer.extract_multiple_entities(message)
+                general_prop_in_message = False
+                for gen_prop in self.message_handler.suggestion_search.general_properties:
+                    if gen_prop.lower() in message.lower():
+                        general_prop_in_message = True
+                extracted_entities_map = self.transformer.extract_suggestion_entities(message, general_prop_in_message)
                 print("extracted suggestion entities " + str(extracted_entities_map.keys()))
             else:
-                extracted_relation, extracted_entity = self.transformer.extract_text_entities(message)
+                extracted_relation, extracted_entity = self.transformer.extract_movie_relation_entities(message)
                 print("extracted entity " + extracted_entity)
                 print("extracted relation " + extracted_relation)
-                # message_parts = [message_part for message_part in message.split(":") if message_part.strip() != ""]
-                # if len(message_parts) > 1:
-                #     answer_definition = [message_part for message_part in
-                #                                   message_parts[0].split("Please answer this question")
-                #                                   if message_part.strip() != ""]
-                #     if len(answer_definition) > 0:
-                #         text_query = message_parts[1]
-                #         factual_answer_needed = answer_definition[0] == " with a factual approach"
-                #         embedding_answer_needed = answer_definition[0] == " with an embedding approach"
-
-            # if not factual_answer_needed and not embedding_answer_needed and not suggestion_response_needed:
                 factual_answer_needed = True
-                # embedding_answer_needed = True
                 text_query = message
 
-
+            response = ""
             if factual_answer_needed:
-                factual_response = self.message_handler.handle_factual_question(text_query, extracted_entity, extracted_relation)
-                print("factual response: " + factual_response)
-                room.post_messages(factual_response)
+                response = self.message_handler.handle_factual_question(text_query, extracted_entity, extracted_relation)
+                print("factual response: " + response)
+                room.post_messages(response)
             if embedding_answer_needed:
-                embedding_response = self.message_handler.handle_embedding_question(text_query, extracted_entity, extracted_relation)
-                print("embedding response: " + embedding_response)
-                room.post_messages(embedding_response)
+                response = self.message_handler.handle_embedding_question(text_query, extracted_entity, extracted_relation)
+                print("embedding response: " + response)
+                room.post_messages(response)
             if suggestion_response_needed:
-                suggestion_response = self.message_handler.handle_suggestion_question(message, extracted_entities_map)
-                print("suggestion response: " + suggestion_response)
-                room.post_messages(suggestion_response)
+                response = self.message_handler.handle_suggestion_question(message, extracted_entities_map)
+                print("suggestion response: " + response)
+                room.post_messages(response)
+            if multimedia_answer_needed:
+                response = self.message_handler.handle_multimedia_question(extracted_m_entity)
+                room.post_messages(response)
+
+            self.cached_responses[message] = response
 
         except Exception as e:
             print(e)

@@ -106,12 +106,34 @@ class VectorStore:
                 .where(f"(LOWER(metadata.description) LIKE '%movie%' OR LOWER(metadata.description) LIKE '%film%')")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
+    def find_similar_entity(self, estimated_label: str, k=1) -> List[dict]:
+        print("entity estimate: " + estimated_label)
+        # Search lanceDb for exact match first
+        exact_matches = (self.entities_table.search(query=estimated_label)
+                         .where(f"(LOWER(metadata.label) IN ('{estimated_label.lower()}'))")
+                         .limit(1).to_list())
+        if exact_matches:
+            return exact_matches
+        return (self.entities_table.search(query=estimated_label)
+                .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
+
     def find_movie_with_label(self, label: str) -> List[dict]:
+        exact_matches = (self.movie_labels_table.search(query=label)
+                         .where(f"(LOWER(metadata.label) IN ('{label.lower()}'))")
+                         .limit(1).to_list())
+        if exact_matches:
+            return exact_matches
         return (self.movie_labels_table.search(query=label)
                 .limit(1).to_list())
 
     def find_similar_movies(self, movie_properties: str, exclude_labels: list[str], k=5) -> List[dict]:
-        return (self.movie_properties_table.search(query=movie_properties)
+        if len(exclude_labels) == 0:
+            return  (self.movie_properties_table.search(query=movie_properties, query_type="fts")
+                .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
+        return (self.movie_properties_table.search(query=movie_properties,
+                                                   query_type="hybrid",
+                                                   vector_column_name="vector",
+                                                   fts_columns="text",)
                 .where(f"metadata.label NOT IN {str(exclude_labels).replace('[', '(').replace(']', ')')}")
                 .rerank(CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L12-v2")).limit(k).to_list())
 
@@ -125,6 +147,25 @@ class VectorStore:
                 if entity.split('/')[-1].startswith('P')
             }
             for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Relations"):
+                label = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    self.logger.error(f"Error while processing entity {label}: {e}")
+
+        batcher.finish()
+        self.logger.debug("Vectorization complete.")
+
+    def fill_entities_vector_store(self):
+        batcher = BatchInserter(self.entities_table)
+        batcher.start()
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            futures = {
+                executor.submit(self._process_entities, label, entity, batcher): label
+                for label, entity in self.label2entity.items()
+                if not entity.split('/')[-1].startswith('P')
+            }
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Embedding Entities"):
                 label = futures[future]
                 try:
                     future.result()
@@ -148,9 +189,9 @@ class VectorStore:
                 # Create a string for each movie with its properties
                 movies[row[1]] = {
                     "label": row[0],
-                    "properties": ', '.join([str(row[2]), str(row[3]), str(row[4]), str(row[5]), str(row[6]),
-                                             str(row[7]), str(row[8])])
+                    "properties": ', '.join([prop for prop in row[2:]])
                 }
+                print(movies[row[1]]["properties"])
 
 
         with ThreadPoolExecutor(max_workers=12) as executor:
@@ -166,6 +207,9 @@ class VectorStore:
                     self.logger.error(f"Error while processing entity {entity}: {e}")
 
         batcher.finish()
+        # Create FTS index on 'page_content' for movie_properties_table
+        self.movie_properties_table.create_fts_index("text")
+
         self.logger.debug("Vectorization complete.")
 
     def fill_movie_labels_vector_store(self):
@@ -247,6 +291,24 @@ class VectorStore:
         except Exception as e:
             self.logger.error(f"Error processing entity {entity_uri}: {e}")
 
+    def _process_entities(self, entity_label: str, entity_uri: str, batcher: BatchInserter):
+        try:
+            description = self.entity2description.get(entity_uri, "")
+
+            document = Document(
+                id=uuid.uuid4().hex,
+                page_content=f"{entity_label}",
+                metadata={
+                    "entity": entity_uri,
+                    "label": entity_label,
+                    "description": description,
+                    "type": "entity",
+                    }
+                )
+            batcher.add_document(document)
+        except Exception as e:
+            self.logger.error(f"Error processing entity {entity_label}: {e}")
+
     def _compute_hash(self, text):
         return xxhash.xxh64(text).hexdigest()
 
@@ -281,3 +343,4 @@ if __name__ == "__main__":
     vector_store.fill_movie_labels_vector_store()
     vector_store.fill_movie_properties_vector_store()
     vector_store.fill_relations_vector_store()
+    vector_store.fill_entities_vector_store()
