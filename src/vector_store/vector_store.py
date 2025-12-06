@@ -189,9 +189,9 @@ class VectorStore:
                 # Create a string for each movie with its properties
                 movies[row[1]] = {
                     "label": row[0],
-                    "properties": ', '.join([str(row[2]), str(row[3]), str(row[4]), str(row[5]), str(row[6]),
-                                             str(row[7]), str(row[8])])
+                    "properties": ', '.join([prop for prop in row[2:]])
                 }
+                print(movies[row[1]]["properties"])
 
 
         with ThreadPoolExecutor(max_workers=12) as executor:
